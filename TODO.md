@@ -13,7 +13,7 @@ Tasks :
 - [ ] Test for profile
 - [ ] Test for authentication
 - [ ] Test for connection
-- [ ] Test for glance_connection
+- [X] Test for glance_connection
 - [X] Test for neutron_connection
 - [ ] Test for nova_connection
 - [X] Test for openstack_connection
