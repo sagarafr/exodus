@@ -58,6 +58,9 @@ class Authentication(dict):
         credentials.ask_credentials()
         self.import_authentication_from_project(credentials)
 
+    def credentials_to_dict(self):
+        return dict([('project_id', self.project_id), ('username', self.username), ('password', self.password)])
+
 
 class OVHAuthentication(Authentication):
     def __init__(self, **kwargs):
