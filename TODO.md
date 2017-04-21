@@ -14,7 +14,7 @@ Tasks :
 - [ ] Test for authentication
 - [ ] Test for connection
 - [ ] Test for glance_connection
-- [ ] Test for neutron_connection
+- [X] Test for neutron_connection
 - [ ] Test for nova_connection
 - [X] Test for openstack_connection
 - [ ] Test for openstack_project
