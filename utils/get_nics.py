@@ -7,7 +7,4 @@ def get_nics(neutron_connection: NeutronConnection, nics_name: str):
 
 
 def get_ovh_default_nics(neutron_connection: NeutronConnection):
-    tmp = get_nics(neutron_connection, 'Ext-Net')
-    print("get", get_network_id_from_neutron(neutron_connection, 'Ext-Net'))
-    print("tmp", tmp)
-    return 'Ext-Net'
+    return get_nics(neutron_connection, 'Ext-Net')
