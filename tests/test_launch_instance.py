@@ -16,8 +16,7 @@ def main():
     ovh_neutron_connection.authentication.username = ovh_nova_connection.authentication.username
     ovh_neutron_connection.region_name = "BHS3"
     ovh_neutron_connection.connect()
-
-    launch_instance(ovh_nova_connection, "refactor_instance", "refactor", "s1-4", "bf8869ea-aaba-4a34-b7e9-9010861ff5f6")
+    launch_instance(ovh_nova_connection, "refactor_instance", "test_ovh_snap_and_migration_dest", "s1-4", get_ovh_default_nics(ovh_neutron_connection))
 
 if __name__ == '__main__':
     main()
