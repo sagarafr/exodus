@@ -22,11 +22,11 @@ def get_snapshot_id_from_glance(glance_connection: GlanceConnection, snapshot_na
 
 
 def get_network_id_from_neutron(neutron_connection: NeutronConnection, network_name: str):
-    network_id = set()
+    network_id = []
     for key in neutron_connection.connection.list_networks().keys():
         for element in neutron_connection.connection.list_networks().get(key):
             if 'name' in element and 'id' in element and element['name'] == network_name:
-                network_id.update(element['id'])
+                network_id.append(element['id'])
     return network_id
 
 
@@ -41,3 +41,12 @@ def get_subnet_id_from_neutron(neutron_connection: NeutronConnection, subnet_nam
                 else:
                     subnet_id.append(element['subnets'])
     return subnet_id
+
+
+def get_image_from_nova(nova_connection: NovaConnection, image_name: str):
+    image_id = []
+    for image in nova_connection.connection.glance.list():
+        image_info = dict(image.to_dict())
+        if 'name' in image_info and 'id' in image_info and image_info['name'] == image_name:
+            image_id.append(image)
+    return image_id
