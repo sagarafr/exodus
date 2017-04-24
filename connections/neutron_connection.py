@@ -14,11 +14,11 @@ class NeutronConnection(Connection):
 
     @property
     def region_name(self):
-        return self._authentication['region']
+        return self._authentication['region_name']
 
     @region_name.setter
     def region_name(self, value):
-        self._authentication['region'] = value
+        self._authentication['region_name'] = value
 
 
 class OVHNeutronConnection(NeutronConnection):
