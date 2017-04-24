@@ -7,8 +7,7 @@ def main():
     ovh_openstack_connection.ask_credentials()
     ovh_openstack_connection.connect()
 
-    credentials = dict(ovh_openstack_connection.authentication.credentials_to_dict())
-    credentials.update({'token': ovh_openstack_connection.token})
+    credentials = dict(ovh_openstack_connection.credentials_to_dict())
     # TODO refactor this because it's not relevant to make a openstack connection just for a token ?
     ovh_glance_connection = OVHGlanceConnection(**credentials)
     ovh_glance_connection.region_name = "BHS3"
