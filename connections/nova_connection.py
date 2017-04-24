@@ -14,6 +14,14 @@ class NovaConnection(Connection):
             del self.authentication['token']
         self.connection = NovaClient(**self.authentication)
 
+    @property
+    def region_name(self):
+        return self.authentication.region_name
+
+    @region_name.setter
+    def region_name(self, value):
+        self.authentication.region_name = value
+
 
 class OVHNovaConnection(NovaConnection):
     def __init__(self, **kwargs):

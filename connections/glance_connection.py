@@ -24,16 +24,15 @@ class GlanceConnection(Connection):
 
     @property
     def token(self):
-        return self.authentication.token
+        return self.authentication['token']
 
     @token.setter
     def token(self, value):
-        self.authentication.token = value
+        self.authentication['token'] = value
 
     @region_name.setter
     def region_name(self, region_name):
         self.authentication['region'] = region_name
-        self.authentication['endpoint'] = "https://image.compute." + self.region_name.lower() + ".cloud.ovh.net/"
 
 
 class OVHGlanceConnection(GlanceConnection):
@@ -42,4 +41,13 @@ class OVHGlanceConnection(GlanceConnection):
         self.authentication['version'] = '2'
         if 'region' not in kwargs:
             self.region_name = "SBG3"
-        self.authentication['endpoint'] = "https://image.compute." + self.region_name.lower() + ".cloud.ovh.net/"
+        self.authentication['endpoint'] = "https://image.compute.{}.cloud.ovh.net/".format(self.region_name.lower())
+
+    @property
+    def region_name(self):
+        return self.authentication['region']
+
+    @region_name.setter
+    def region_name(self, value):
+        self.authentication['region'] = value
+        self.authentication['endpoint'] = "https://image.compute.{}.cloud.ovh.net/".format(self.region_name.lower())

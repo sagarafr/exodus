@@ -12,6 +12,14 @@ class NeutronConnection(Connection):
     def connect(self):
         self.connection = NeutronClient(**self._authentication)
 
+    @property
+    def region_name(self):
+        return self._authentication['region']
+
+    @region_name.setter
+    def region_name(self, value):
+        self._authentication['region'] = value
+
 
 class OVHNeutronConnection(NeutronConnection):
     def __init__(self, **kwargs):
