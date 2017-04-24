@@ -21,7 +21,6 @@ class OVHNeutronAuthentication(NeutronAuthentication, OVHAuthentication):
         super().__init__(**kwargs)
         self["version"] = "2.0"
         self["auth_url"] = "https://auth.cloud.ovh.net/v2.0"
-        del self["token"]
         if self.region_name == "":
             self.region_name = "SBG3"
 

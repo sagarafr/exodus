@@ -1,4 +1,4 @@
-from connections.openstack_project import OpenStackProject
+from utils.ask_credential import ask_credential
 
 
 class Authentication(dict):
@@ -6,7 +6,6 @@ class Authentication(dict):
         self["project_id"] = ""
         self["username"] = ""
         self["password"] = ""
-        self["token"] = ""
         super().__init__(**kwargs)
 
     @property
@@ -34,32 +33,31 @@ class Authentication(dict):
         self["password"] = value
 
     @property
-    def token(self):
-        return self["token"]
-
-    @token.setter
-    def token(self, value):
-        self["token"] = value
-
-    @property
     def authentication(self):
-        return self.project_id, self.username, self.password, self.token
+        return self.project_id, self.username, self.password
 
     @authentication.setter
     def authentication(self, value):
-        self.project_id, self.username, self.password, self.token = value
+        self.project_id, self.username, self.password = value
 
-    def import_authentication_from_project(self, openstack_project: OpenStackProject):
-        self.authentication = (openstack_project.project_id, openstack_project.user_id,
-                               openstack_project.password, openstack_project.token)
+    def import_authentication(self, authentication):
+        if authentication.project_id != "":
+            self.project_id = authentication.project_id
+        if authentication.username != "":
+            self.username = authentication.username
+        if authentication.password != "":
+            self.password = authentication.password
 
     def ask_credentials(self):
-        credentials = OpenStackProject()
-        credentials.ask_credentials()
-        self.import_authentication_from_project(credentials)
+        self.project_id, self.username, self.password = ask_credential([(False, "Project id: "),
+                                                                       (False, "User id: "),
+                                                                       (True, None)])
 
     def credentials_to_dict(self):
-        return dict([('project_id', self.project_id), ('username', self.username), ('password', self.password)])
+        credentials = dict([('project_id', self.project_id), ('user_id', self.username), ('password', self.password)])
+        if 'token' in self:
+            credentials.update(('token', self['token']))
+        return credentials
 
 
 class OVHAuthentication(Authentication):
