@@ -7,10 +7,10 @@ class OpenStackAuthentication(Authentication):
         super().__init__(**kwargs)
 
 
-class OVHOpenStackAuthentication(OpenStackAuthentication, OVHAuthentication):
+class OVHOpenStackAuthentication(OVHAuthentication, OpenStackAuthentication):
     def __init__(self, **kwargs):
-        self["profile"] = None
         super().__init__(**kwargs)
+        self["profile"] = None
 
     @property
     def profile(self):
