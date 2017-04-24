@@ -17,7 +17,8 @@ def main():
     ovh_neutron_connection.region_name = "BHS3"
     ovh_neutron_connection.connect()
 
-    launch_instance(ovh_nova_connection, input("Instance name: "), input("Snapshot name: "), input("Flavor name: "), input("Network id: "))
+    launch_instance(ovh_nova_connection, input("Instance name: "), input("Snapshot name: "), input("Flavor name: "), get_ovh_default_nics(ovh_neutron_connection))
+
 
 if __name__ == '__main__':
     main()
