@@ -1,22 +1,22 @@
-from connections.nova_connection import OVHNovaConnection
-from connections.neutron_connection import OVHNeutronConnection
-from migration.launch_instance import launch_instance
-from utils.get_nics import get_ovh_default_nics
+from connections.nova_connection import NovaConnectionV3
+from connections.neutron_connection import NeutronConnectionV3
+from migration.launch_instance import launch_instance_v3
+from utils.get_ids import get_ovh_default_nics_v3
+from getpass import getpass
 
 
 def main():
-    ovh_nova_connection = OVHNovaConnection()
-    ovh_nova_connection.ask_credentials()
-    ovh_nova_connection.region_name = "BHS3"
-    ovh_nova_connection.connect()
+    creds = {"auth_url": "https://auth.cloud.ovh.net/v3",
+             "user_domain_name": "default",
+             "username": input("Username: "),
+             "password": getpass(),
+             "region_name": "BHS3",
+             "version": "2"}
+    ovh_nova_connection = NovaConnectionV3(**creds)
+    ovh_neutron_connection = NeutronConnectionV3(**creds)
+    launch_instance_v3(ovh_nova_connection, "refactor_instance", "test_ovh_snap_and_migration_dest", "s1-4",
+                       get_ovh_default_nics_v3(ovh_neutron_connection))
 
-    ovh_neutron_connection = OVHNeutronConnection()
-    ovh_neutron_connection.authentication.project_id = ovh_nova_connection.authentication.project_id
-    ovh_neutron_connection.authentication.password = ovh_nova_connection.authentication.password
-    ovh_neutron_connection.authentication.username = ovh_nova_connection.authentication.username
-    ovh_neutron_connection.region_name = "BHS3"
-    ovh_neutron_connection.connect()
-    launch_instance(ovh_nova_connection, "refactor_instance", "test_ovh_snap_and_migration_dest", "s1-4", get_ovh_default_nics(ovh_neutron_connection))
 
 if __name__ == '__main__':
     main()

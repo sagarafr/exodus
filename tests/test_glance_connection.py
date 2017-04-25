@@ -1,19 +1,21 @@
-from connections.glance_connection import OVHGlanceConnection
-from connections.openstack_connection import OVHOpenStackConnection
+from authentication.authentication import AuthenticationV3
+from connections.glance_connection import GlanceConectionV3
+from getpass import getpass
 
 
 def main():
-    ovh_openstack_connection = OVHOpenStackConnection()
-    ovh_openstack_connection.ask_credentials()
-    ovh_openstack_connection.connect()
-
-    credentials = dict(ovh_openstack_connection.credentials_to_dict())
-    # TODO refactor this because it's not relevant to make a openstack connection just for a token ?
-    ovh_glance_connection = OVHGlanceConnection(**credentials)
-    ovh_glance_connection.region_name = "BHS3"
-    ovh_glance_connection.connect()
+    creds = {"auth_url": "https://auth.cloud.ovh.net/v3",
+             "user_domain_name": "default",
+             "username": input("Username: "),
+             "password": getpass()}
+    connection = AuthenticationV3(**creds)
+    glance_creds = {"region_name": "GRA3",
+                    "version": "2",
+                    "authentication_v3": connection}
+    ovh_glance_connection = GlanceConectionV3(**glance_creds)
     for image in ovh_glance_connection.connection.images.list():
         print(image)
+
 
 if __name__ == '__main__':
     main()
