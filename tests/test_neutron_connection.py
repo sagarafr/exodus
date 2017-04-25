@@ -1,15 +1,15 @@
-from connections.neutron_connection import OVHNeutronConnection
-from connections.openstack_connection import OVHOpenStackConnection
+from connections.neutron_connection import NeutronConnectionV3
+from getpass import getpass
 
 
 def main():
-    ovh_openstack_connection = OVHOpenStackConnection()
-    ovh_openstack_connection.ask_credentials()
-    ovh_openstack_connection.connect()
-
-    ovh_neutron_connection = OVHNeutronConnection()
-    ovh_neutron_connection.import_credentials(ovh_openstack_connection.authentication)
-    ovh_neutron_connection.connect()
+    creds = {"auth_url": "https://auth.cloud.ovh.net/v3",
+             "user_domain_name": "default",
+             "username": input("Username: "),
+             "password": getpass(),
+             "region_name": "BHS3",
+             "version": "2"}
+    ovh_neutron_connection = NeutronConnectionV3(**creds)
     print(ovh_neutron_connection.connection.list_networks())
 
 

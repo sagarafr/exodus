@@ -1,33 +1,59 @@
-from authentication.authentication import Authentication
+from authentication.authentication import AuthenticationV3
 
 
-class Connection(object):
-    def __init__(self):
-        super().__init__()
-        self._authentication = None
+class ConnectionV3(dict):
+    """
+    kwars = dict
+    auth_url, username, password, user_domain_name, authentication_v3
+    """
+    def __init__(self, **kwargs):
+        super().__init__(kwargs)
+        if 'authentication_v3' not in self:
+            self._authentication = AuthenticationV3(self.auth_url, self.username, self.password, self.user_domain_name)
+        else:
+            self._authentication = self['authentication_v3']
         self._connection = None
+
+    @property
+    def auth_url(self):
+        return self['auth_url']
+
+    @property
+    def username(self):
+        return self['username']
+
+    @property
+    def password(self):
+        return self['password']
+
+    @property
+    def user_domain_name(self):
+        return self['user_domain_name']
+
+    @property
+    def authentication_v3(self):
+        return self['authentication_v3']
 
     @property
     def authentication(self):
         return self._authentication
+
+    @property
+    def connection(self):
+        return self._connection
 
     @authentication.setter
     def authentication(self, value):
         self._authentication = value
 
     @property
-    def connection(self):
-        return self._connection
+    def region(self):
+        return self.authentication.global_region
 
-    @connection.setter
-    def connection(self, value):
-        self._connection = value
+    @property
+    def url(self):
+        return set(element['url'] for element in self.endpoints if 'url' in element)
 
-    def connect(self):
-        raise NotImplemented("Must implement connect function")
-
-    def import_credentials(self, authentication: Authentication):
-        self.authentication.import_authentication(authentication)
-
-    def ask_credentials(self):
-        self.authentication.ask_credentials()
+    @property
+    def endpoints(self):
+        raise NotImplemented("Endpoints is not implemented in Connection class")

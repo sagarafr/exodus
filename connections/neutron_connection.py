@@ -1,27 +1,20 @@
 from neutronclient.v2_0.client import Client as NeutronClient
-from authentication.neutron_authentication import NeutronAuthentication
-from authentication.neutron_authentication import OVHNeutronAuthentication
-from connections.connection import Connection
+from connections.connection import ConnectionV3
 
 
-class NeutronConnection(Connection):
+class NeutronConnectionV3(ConnectionV3):
     def __init__(self, **kwargs):
-        super().__init__()
-        self._authentication = NeutronAuthentication(**kwargs)
-
-    def connect(self):
-        self.connection = NeutronClient(**self._authentication)
+        super().__init__(**kwargs)
+        self._connection = NeutronClient(session=self.authentication.session, region_name=self.region_name)
 
     @property
     def region_name(self):
-        return self._authentication['region_name']
+        return self['region_name']
 
     @region_name.setter
     def region_name(self, value):
-        self._authentication['region_name'] = value
+        self['region_name'] = value
 
-
-class OVHNeutronConnection(NeutronConnection):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self._authentication = OVHNeutronAuthentication()
+    @property
+    def region(self):
+        return self.authentication.network_region

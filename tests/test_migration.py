@@ -1,23 +1,27 @@
-from connections.glance_connection import OVHGlanceConnection
-from connections.openstack_connection import OVHOpenStackConnection
-from migration.migration import migration
+from connections.glance_connection import GlanceConectionV3
+from authentication.authentication import AuthenticationV3
+from migration.migration import migration_v3
+from getpass import getpass
 
 
 def main():
-    ovh_openstack_connection = OVHOpenStackConnection()
-    ovh_openstack_connection.ask_credentials()
-    ovh_openstack_connection.connect()
+    creds = {"auth_url": "https://auth.cloud.ovh.net/v3",
+             "user_domain_name": "default",
+             "username": input("Username: "),
+             "password": getpass()}
+    connection = AuthenticationV3(**creds)
+    glance_creds_src = {"region_name": "GRA3",
+                        "version": "2",
+                        "authentication_v3": connection}
+    glance_creds_dest = {"region_name": "BHS3",
+                         "version": "2",
+                         "authentication_v3": connection}
 
-    credentials = dict(ovh_openstack_connection.authentication.credentials_to_dict())
-    credentials.update({'token': ovh_openstack_connection.token})
-    ovh_glance_connection_source = OVHGlanceConnection(**credentials)
-    ovh_glance_connection_source.region_name = "GRA3"
-    ovh_glance_connection_source.connect()
-    ovh_glance_connection_destination = OVHGlanceConnection(**credentials)
-    ovh_glance_connection_destination.region_name = "BHS3"
-    ovh_glance_connection_destination.connect()
-    migration(ovh_glance_connection_source, ovh_glance_connection_destination,
+    ovh_glance_connection_source = GlanceConectionV3(**glance_creds_src)
+    ovh_glance_connection_destination = GlanceConectionV3(**glance_creds_dest)
+    migration_v3(ovh_glance_connection_source, ovh_glance_connection_destination,
               input("Snapshot name: "), input("Server name: "), input("Disk format: "), input("Container format: "))
+
 
 if __name__ == '__main__':
     main()

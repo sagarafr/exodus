@@ -1,83 +1,114 @@
-from utils.ask_credential import ask_credential
+from keystoneauth1.identity import v3
+from keystoneauth1.session import Session
+from os import environ
 
 
-class Authentication(dict):
-    def __init__(self, **kwargs):
-        self["project_id"] = ""
-        self["username"] = ""
-        self["password"] = ""
-        super().__init__(**kwargs)
-
-    @property
-    def project_id(self):
-        return self["project_id"]
-
-    @project_id.setter
-    def project_id(self, value):
-        self["project_id"] = value
-
-    @property
-    def username(self):
-        return self["username"]
-
-    @username.setter
-    def username(self, value):
-        self["username"] = value
-
-    @property
-    def password(self):
-        return self["password"]
-
-    @password.setter
-    def password(self, value):
-        self["password"] = value
+class AuthenticationV3:
+    def __init__(self, auth_url: str = "", username: str = "", password: str = "", user_domain_name: str = ""):
+        auth_url = auth_url if auth_url != "" else environ['OS_AUTH_URL']
+        username = username if username != "" else environ['OS_USERNAME']
+        password = password if password != "" else environ['OS_PASSWORD']
+        user_domain_name = user_domain_name if user_domain_name != "" else environ['OS_USER_DOMAIN_NAME']
+        self._authentication = v3.Password(auth_url=auth_url, username=username,
+                                           password=password, user_domain_name=user_domain_name)
+        self._session = Session(auth=self.authentication)
+        self._access = self.authentication.get_access(session=self.session)
+        self._catalog = None if not self.access.has_service_catalog() else self.access.__dict__['_data']['token']['catalog']
 
     @property
     def authentication(self):
-        return self.project_id, self.username, self.password
+        return self._authentication
 
     @authentication.setter
-    def authentication(self, value):
-        self.project_id, self.username, self.password = value
-
-    def import_authentication(self, authentication):
-        if authentication.project_id != "":
-            self.project_id = authentication.project_id
-        if authentication.username != "":
-            self.username = authentication.username
-        if authentication.password != "":
-            self.password = authentication.password
-
-    def ask_credentials(self):
-        self.project_id, self.username, self.password = ask_credential([(False, "Project id: "),
-                                                                       (False, "User id: "),
-                                                                       (True, None)])
-
-    def credentials_to_dict(self):
-        credentials = dict([('project_id', self.project_id), ('user_id', self.username), ('password', self.password)])
-        if 'token' in self:
-            credentials.update(('token', self['token']))
-        return credentials
-
-
-class OVHAuthentication(Authentication):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self["user_domain_name"] = "default"
-        self["auth_url"] = "https://auth.cloud.ovh.net/v3"
+    def authentication(self, value: v3.Password):
+        self._authentication = value
 
     @property
-    def user_domain_name(self):
-        return self["user_domain_name"]
+    def session(self):
+        return self._session
 
-    @user_domain_name.setter
-    def user_domain_name(self, value):
-        self["user_domain_name"] = value
+    @session.setter
+    def session(self, value: Session):
+        self._session = value
 
     @property
-    def auth_url(self):
-        return self["auth_url"]
+    def access(self):
+        return self._access
 
-    @auth_url.setter
-    def auth_url(self, value):
-        self["auth_url"] = value
+    @property
+    def catalog(self):
+        return self._catalog
+
+    @property
+    def volume(self):
+        return self._get_endpoint("volume")
+
+    @property
+    def volume_region(self):
+        return self._get_region(self.volume)
+
+    @property
+    def identity(self):
+        return self._get_endpoint("identity")
+
+    @property
+    def identity_region(self):
+        return self._get_region(self.identity)
+
+    @property
+    def compute(self):
+        return self._get_endpoint("compute")
+
+    @property
+    def compute_region(self):
+        return self._get_region(self.compute)
+
+    @property
+    def network(self):
+        return self._get_endpoint("network")
+
+    @property
+    def network_region(self):
+        return self._get_region(self.network)
+
+    @property
+    def image(self):
+        return self._get_endpoint("image")
+
+    @property
+    def image_region(self):
+        return self._get_region(self.image)
+
+    @property
+    def object_store(self):
+        return self._get_endpoint("object-store")
+
+    @property
+    def object_store_region(self):
+        return self._get_region(self.object_store)
+
+    @property
+    def volume_v2(self):
+        return self._get_endpoint("volumev2")
+
+    @property
+    def global_region(self):
+        global_regions = self._get_region(self.volume)
+        global_regions.intersection(self._get_region(self.identity))
+        global_regions.intersection(self._get_region(self.compute))
+        global_regions.intersection(self._get_region(self.network))
+        global_regions.intersection(self._get_region(self.image))
+        global_regions.intersection(self._get_region(self.object_store))
+        global_regions.intersection(self._get_region(self.volume_v2))
+        return global_regions
+
+    def _get_endpoint(self, type_name: str):
+        for element in self.catalog:
+            element = dict(element)
+            if "type" in element and "endpoints" in element and element["type"] == type_name:
+                return element["endpoints"]
+        return None
+
+    @staticmethod
+    def _get_region(elements: dict = None):
+        return set(element['region_id']for element in elements if 'region_id' in element) if elements is not None else None

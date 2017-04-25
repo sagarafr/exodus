@@ -1,7 +1,7 @@
-from connections.nova_connection import NovaConnection
+from connections.nova_connection import NovaConnectionV3
 
 
-def find_flavors(nova_connection: NovaConnection, flavor_name: str):
+def find_flavors_v3(nova_connection: NovaConnectionV3, flavor_name: str):
     flavor_list = []
     for flavor in nova_connection.connection.flavors.list():
         flavor_info = dict(flavor.to_dict())
