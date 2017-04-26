@@ -5,7 +5,7 @@ from connections.connection import ConnectionV3
 class GlanceConectionV3(ConnectionV3):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._connection = GlanceClient(version=kwargs['version'], session=self.authentication.session)
+        self._connection = GlanceClient(version=kwargs['version'], session=self.authentication.session, region_name=self['region_name'])
 
     @property
     def endpoints(self):
@@ -17,8 +17,8 @@ class GlanceConectionV3(ConnectionV3):
 
     @property
     def region_name(self):
-        return self['region']
+        return self['region_name']
 
     @region_name.setter
     def region_name(self, value):
-        self['region'] = value
+        self['region_name'] = value
