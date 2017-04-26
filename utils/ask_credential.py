@@ -18,5 +18,6 @@ def ask_credential(elements: list):
                 answer = getpass(sentence) if sentence != "" else getpass()
             answers.append(answer)
         else:
+            print(type(element))
             raise TypeError("Each element of list must be a tuple")
     return answers
