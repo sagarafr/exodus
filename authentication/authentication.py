@@ -92,6 +92,22 @@ class AuthenticationV3:
         return self._get_endpoint("volumev2")
 
     @property
+    def auth_url(self):
+        return self.authentication.auth_url
+
+    @property
+    def username(self):
+        return self.authentication.get_cache_id_elements()['password_username']
+
+    @property
+    def password(self):
+        return self.authentication.get_cache_id_elements()["password_password"]
+
+    @property
+    def user_domain_id(self):
+        return self.authentication.get_cache_id_elements()["password_user_domain_name"]
+
+    @property
     def global_region(self):
         global_regions = self._get_region(self.volume)
         global_regions.intersection(self._get_region(self.identity))
@@ -112,3 +128,6 @@ class AuthenticationV3:
     @staticmethod
     def _get_region(elements: dict = None):
         return set(element['region_id']for element in elements if 'region_id' in element) if elements is not None else None
+
+    def __str__(self):
+        return "Auth url: " + str(self.auth_url) + " | Username: " + str(self.username)
