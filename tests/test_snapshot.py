@@ -1,6 +1,6 @@
-from connections.nova_connection import NovaConnectionV3
+from connections.nova_connection import NovaConnection
 from connections.connection import AuthenticationV3
-from migration.snapshot import make_snapshot_v3
+from migration.snapshot import make_snapshot
 from getpass import getpass
 
 
@@ -21,9 +21,9 @@ def main():
         nova_creds["region_name"] = input("make a region choice: ")
         if nova_creds["region_name"] in regions:
             find = True
-    print(nova_creds)
-    ovh_nova_connection = NovaConnectionV3(**nova_creds)
-    make_snapshot_v3(ovh_nova_connection, input("Instance name: "), input("Snapshot name: "))
+
+    ovh_nova_connection = NovaConnection(**nova_creds)
+    make_snapshot(ovh_nova_connection, input("Instance name: "), input("Snapshot name: "))
 
 
 if __name__ == '__main__':

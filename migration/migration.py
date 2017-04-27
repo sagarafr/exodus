@@ -1,5 +1,5 @@
-from connections.glance_connection import GlanceConectionV3
-from utils.get_ids import get_snapshot_id_from_glance_v3
+from connections.glance_connection import GlanceConnection
+from utils.get_ids import get_snapshot_id_from_glance
 from tempfile import NamedTemporaryFile
 from os import mkfifo
 from os import fork
@@ -7,10 +7,10 @@ from os import unlink
 from os import wait
 
 
-def migration_v3(glance_source: GlanceConectionV3, glance_destination: GlanceConectionV3,
-                 snapshot_name: str, server_name_dest: str,
-                 disk_format: str, container_format: str):
-    snapshot_uuid_list = get_snapshot_id_from_glance_v3(glance_source, snapshot_name)
+def migration(glance_source: GlanceConnection, glance_destination: GlanceConnection,
+              snapshot_name: str, server_name_dest: str,
+              disk_format: str, container_format: str):
+    snapshot_uuid_list = get_snapshot_id_from_glance(glance_source, snapshot_name)
     if len(snapshot_uuid_list) == 0:
         raise ValueError("Couldn't find the following snapshot: " + snapshot_name)
 

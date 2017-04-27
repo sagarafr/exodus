@@ -1,6 +1,6 @@
-from connections.glance_connection import GlanceConectionV3
+from connections.glance_connection import GlanceConnection
 from authentication.authentication import AuthenticationV3
-from migration.migration import migration_v3
+from migration.migration import migration
 from getpass import getpass
 
 
@@ -17,9 +17,9 @@ def main():
                          "version": "2",
                          "authentication_v3": connection}
 
-    ovh_glance_connection_source = GlanceConectionV3(**glance_creds_src)
-    ovh_glance_connection_destination = GlanceConectionV3(**glance_creds_dest)
-    migration_v3(ovh_glance_connection_source, ovh_glance_connection_destination,
+    ovh_glance_connection_source = GlanceConnection(**glance_creds_src)
+    ovh_glance_connection_destination = GlanceConnection(**glance_creds_dest)
+    migration(ovh_glance_connection_source, ovh_glance_connection_destination,
               input("Snapshot name: "), input("Server name: "), input("Disk format: "), input("Container format: "))
 
 

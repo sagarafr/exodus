@@ -1,9 +1,9 @@
-from connections.nova_connection import NovaConnectionV3
-from utils.get_ids import get_server_id_from_nova_v3
+from connections.nova_connection import NovaConnection
+from utils.get_ids import get_server_id_from_nova
 
 
-def make_snapshot_v3(nova_connection: NovaConnectionV3, server_name: str, snapshot_name: str):
-    server_id = get_server_id_from_nova_v3(nova_connection, server_name)
+def make_snapshot(nova_connection: NovaConnection, server_name: str, snapshot_name: str):
+    server_id = get_server_id_from_nova(nova_connection, server_name)
     if len(server_id) == 0:
         raise ValueError("We don't have found this following server " + server_name)
 

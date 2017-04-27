@@ -1,4 +1,4 @@
-from connections.neutron_connection import NeutronConnectionV3
+from connections.neutron_connection import NeutronConnection
 from getpass import getpass
 
 
@@ -9,7 +9,7 @@ def main():
              "password": getpass(),
              "region_name": "BHS3",
              "version": "2"}
-    ovh_neutron_connection = NeutronConnectionV3(**creds)
+    ovh_neutron_connection = NeutronConnection(**creds)
     print(ovh_neutron_connection.connection.list_networks())
 
 
