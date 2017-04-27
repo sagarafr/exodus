@@ -130,7 +130,6 @@ class Shell(cmd.Cmd):
         Use: migration_between_project [src_user] src_region [dest_user] dest_region src_instance_name \
         dest_instance_name flavor'
         args = args.split(' ')
-        print(len(args))
         src_user_connection, dest_user_connection = None, None
         src_region, dest_region, src_instance_name, dest_instance_name, flavor = None, None, None, None, None
         if len(args) == 7:

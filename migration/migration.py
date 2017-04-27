@@ -26,14 +26,12 @@ def migration_v3(glance_source: GlanceConectionV3, glance_destination: GlanceCon
     if data.wrapped is not None:
         mkfifo(pipe_filename)
         if fork() != 0:
-            print("parent")
             reading_pipe = open(pipe_filename, 'rb')
             glance_destination.connection.images.upload(image_uuid, reading_pipe)
             reading_pipe.close()
             unlink(pipe_filename)
             wait()
         else:
-            print("child")
             writing_pipe = open(pipe_filename, 'wb')
             for binary_data in data.wrapped:
                 writing_pipe.write(binary_data)
