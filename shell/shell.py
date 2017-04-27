@@ -125,53 +125,45 @@ class Shell(cmd.Cmd):
             self._connections.append(self._current_connection)
             print("You are connected to {0} as {1}\n".format(authentication.auth_url, authentication.username))
 
-    def do_migration_between_project(self, args):
-        'Make a migration between 2 project.\nUse: migration_between_project src_user src_region dest_user dest_region src_instance_name dest_instance_name flavor'
+    def do_migration(self, args):
+        'Make a migration between 2 project.\n\
+        Use: migration_between_project [src_user] src_region [dest_user] dest_region src_instance_name \
+        dest_instance_name flavor'
         args = args.split(' ')
+        print(len(args))
+        src_user_connection, dest_user_connection = None, None
+        src_region, dest_region, src_instance_name, dest_instance_name, flavor = None, None, None, None, None
         if len(args) == 7:
             src_user, src_region, dest_user, dest_region, src_instance_name, dest_instance_name, flavor = map(str, args)
+            src_user_connection = self._find_connection(src_user)
+            dest_user_connection = self._find_connection(dest_user)
+        elif len(args) == 5:
+            src_region, dest_region, src_instance_name, dest_instance_name, flavor = map(str, args)
+            src_user_connection = self._current_connection
+            dest_user_connection = self._current_connection
+        if len(args) == 7 or len(args) == 5:
             snapshot_name = str(src_instance_name + str(datetime.now().isoformat()))
             try:
-                print("make snap")
-                make_snapshot_v3(self._find_connection(src_user).get_nova_connection(src_region), src_instance_name, snapshot_name)
-                print("snap done")
-                print("make migration")
-                migration_v3(self._find_connection(src_user).get_glance_connection(src_region),
-                             self._find_connection(dest_user).get_glance_connection(dest_region),
-                             snapshot_name, snapshot_name, "qcow2", "bare")
-                print("migration done")
-                print("make launch")
-                launch_instance_v3(self._find_connection(dest_user).get_nova_connection(dest_region),
-                                   dest_instance_name, snapshot_name, flavor,
-                                   get_ovh_default_nics_v3(
-                                       self._current_connection.get_neutron_connection(dest_region)))
-                print("launch done")
-            except Exception as error:
-                print(error)
-                print("Error")
-        else:
-            print("Usage error")
-
-    def do_migration(self, args):
-        'Make a migration between 2 regions.\nUse: migration src_region dest_region src_instance_name dest_instance_name instance_flavor'
-        args = args.split(' ')
-        if len(args) == 5:
-            src_region, dest_region, src_instance, dest_instance, flavor = map(str, args)
-            snapshot_name = str(src_instance + str(datetime.now().isoformat()))
-            try:
-                print("make snap")
-                make_snapshot_v3(self._current_connection.get_nova_connection(src_region), src_instance, snapshot_name)
-                print("snap done")
-                print("make migration")
-                migration_v3(self._current_connection.get_glance_connection(src_region),
-                             self._current_connection.get_glance_connection(dest_region),
-                             snapshot_name, snapshot_name, "qcow2", "bare")
-                print("migration done")
-                print("make launch")
-                launch_instance_v3(self._current_connection.get_nova_connection(dest_region),
-                                   dest_instance, snapshot_name, flavor,
-                                   get_ovh_default_nics_v3(self._current_connection.get_neutron_connection(dest_region)))
-                print("launch done")
+                if src_region in src_user_connection.nova and \
+                                src_region in src_user_connection.glance and \
+                                dest_region in dest_user_connection.glance and \
+                                dest_region in dest_user_connection.nova and \
+                                dest_region in dest_user_connection.neutron:
+                    print("make snap")
+                    make_snapshot_v3(src_user_connection.get_nova_connection(src_region), src_instance_name, snapshot_name)
+                    print("snap done")
+                    print("make migration")
+                    migration_v3(src_user_connection.get_glance_connection(src_region),
+                                 dest_user_connection.get_glance_connection(dest_region),
+                                 snapshot_name, snapshot_name, "qcow2", "bare")
+                    print("migration done")
+                    print("make launch")
+                    launch_instance_v3(dest_user_connection.get_nova_connection(dest_region),
+                                       dest_instance_name, snapshot_name, flavor,
+                                       get_ovh_default_nics_v3(dest_user_connection.get_neutron_connection(dest_region)))
+                    print("launch done")
+                else:
+                    print("Can not find regions in the some connections")
             except Exception as error:
                 print(error)
                 print("Error")
