@@ -1,8 +1,8 @@
 from novaclient.client import Client as NovaClient
-from connections.connection import ConnectionV3
+from connections.connection import Connection
 
 
-class NovaConnectionV3(ConnectionV3):
+class NovaConnection(Connection):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._connection = NovaClient(session=self.authentication.session, version=self['version'],

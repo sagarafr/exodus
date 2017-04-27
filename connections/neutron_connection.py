@@ -1,8 +1,8 @@
 from neutronclient.v2_0.client import Client as NeutronClient
-from connections.connection import ConnectionV3
+from connections.connection import Connection
 
 
-class NeutronConnectionV3(ConnectionV3):
+class NeutronConnection(Connection):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._connection = NeutronClient(session=self.authentication.session, region_name=self.region_name)

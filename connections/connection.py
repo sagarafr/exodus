@@ -1,7 +1,7 @@
 from authentication.authentication import AuthenticationV3
 
 
-class ConnectionV3(dict):
+class Connection(dict):
     """
     kwars = dict
     auth_url, username, password, user_domain_name, authentication_v3

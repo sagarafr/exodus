@@ -1,12 +1,12 @@
 from authentication.authentication import AuthenticationV3
-from connections.glance_connection import GlanceConectionV3
-from connections.neutron_connection import NeutronConnectionV3
-from connections.nova_connection import NovaConnectionV3
-from migration.snapshot import make_snapshot_v3
-from migration.migration import migration_v3
-from migration.launch_instance import launch_instance_v3
+from connections.glance_connection import GlanceConnection
+from connections.neutron_connection import NeutronConnection
+from connections.nova_connection import NovaConnection
+from migration.snapshot import make_snapshot
+from migration.migration import migration
+from migration.launch_instance import launch_instance
 from utils.ask_credential import ask_credential
-from utils.get_ids import get_ovh_default_nics_v3
+from utils.get_ids import get_ovh_default_nics
 from json import dumps
 from datetime import datetime
 import cmd
@@ -74,11 +74,11 @@ class Connections:
 
     def _init_connections(self):
         self._init_connection(self.authentication.image_region, self._connection_version.glance_version,
-                              GlanceConectionV3, self._glance_connections)
+                              GlanceConnection, self._glance_connections)
         self._init_connection(self.authentication.network_region, self._connection_version.neutron_version,
-                              NeutronConnectionV3, self._neutron_connections)
+                              NeutronConnection, self._neutron_connections)
         self._init_connection(self.authentication.compute_region, self._connection_version.nova_version,
-                              NovaConnectionV3, self._nova_connections)
+                              NovaConnection, self._nova_connections)
 
     def __str__(self):
         return str(self._authentication)
@@ -149,17 +149,17 @@ class Shell(cmd.Cmd):
                                 dest_region in dest_user_connection.nova and \
                                 dest_region in dest_user_connection.neutron:
                     print("make snap")
-                    make_snapshot_v3(src_user_connection.get_nova_connection(src_region), src_instance_name, snapshot_name)
+                    make_snapshot(src_user_connection.get_nova_connection(src_region), src_instance_name, snapshot_name)
                     print("snap done")
                     print("make migration")
-                    migration_v3(src_user_connection.get_glance_connection(src_region),
-                                 dest_user_connection.get_glance_connection(dest_region),
-                                 snapshot_name, snapshot_name, "qcow2", "bare")
+                    migration(src_user_connection.get_glance_connection(src_region),
+                              dest_user_connection.get_glance_connection(dest_region),
+                              snapshot_name, snapshot_name, "qcow2", "bare")
                     print("migration done")
                     print("make launch")
-                    launch_instance_v3(dest_user_connection.get_nova_connection(dest_region),
-                                       dest_instance_name, snapshot_name, flavor,
-                                       get_ovh_default_nics_v3(dest_user_connection.get_neutron_connection(dest_region)))
+                    launch_instance(dest_user_connection.get_nova_connection(dest_region),
+                                    dest_instance_name, snapshot_name, flavor,
+                                    get_ovh_default_nics(dest_user_connection.get_neutron_connection(dest_region)))
                     print("launch done")
                 else:
                     print("Can not find regions in the some connections")

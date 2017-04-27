@@ -1,8 +1,8 @@
 from glanceclient import Client as GlanceClient
-from connections.connection import ConnectionV3
+from connections.connection import Connection
 
 
-class GlanceConectionV3(ConnectionV3):
+class GlanceConnection(Connection):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._connection = GlanceClient(version=kwargs['version'], session=self.authentication.session, region_name=self['region_name'])

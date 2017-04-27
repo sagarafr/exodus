@@ -1,4 +1,4 @@
-from connections.nova_connection import NovaConnectionV3
+from connections.nova_connection import NovaConnection
 from getpass import getpass
 
 
@@ -9,7 +9,7 @@ def main():
              "password": getpass(),
              "region_name": "SBG3",
              "version": "2"}
-    ovh_nova_connection = NovaConnectionV3(**creds)
+    ovh_nova_connection = NovaConnection(**creds)
     print(ovh_nova_connection.endpoints)
     for server in ovh_nova_connection.connection.servers.list():
         print(server)
