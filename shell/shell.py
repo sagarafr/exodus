@@ -151,6 +151,36 @@ class Shell(cmd.Cmd):
         else:
             print("Usage error")
 
+    def do_list_flavor(self, args):
+        'List all flavor. Can be pass a regions name in parameter'
+        if len(args) == 0:
+            for region in self._current_connection.nova:
+                print(region)
+                print('\n'.join(str(s) for s in self._current_connection.nova[region].connection.flavors.list()))
+        else:
+            args = set(args.split(' '))
+            for region in args:
+                if region in self._current_connection.nova:
+                    print(region)
+                    print('\n'.join(str(s) for s in self._current_connection.nova[region].connection.flavors.list()))
+
+    def do_list_region(self, args):
+        'List all region'
+        print("\n".join(str(r) for r in self._current_connection.authentication.global_region))
+
+    def do_list_instance(self, args):
+        'List all instance. Can be pass a regions name in parameter'
+        if len(args) == 0:
+            for region in self._current_connection.nova:
+                print(region)
+                print('\n'.join(str(s) for s in self._current_connection.nova[region].connection.servers.list()))
+        else:
+            args = set(args.split(' '))
+            for region in args:
+                if region in self._current_connection.nova:
+                    print(region)
+                    print('\n'.join(str(s) for s in self._current_connection.nova[region].connection.servers.list()))
+
     def _init_auth(self):
         is_auth = False
         authentication = None
