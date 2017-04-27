@@ -125,8 +125,35 @@ class Shell(cmd.Cmd):
             self._connections.append(self._current_connection)
             print("You are connected to {0} as {1}\n".format(authentication.auth_url, authentication.username))
 
+    def do_migration_between_project(self, args):
+        'Make a migration between 2 project.\nUse: migration_between_project src_user src_region dest_user dest_region src_instance_name dest_instance_name flavor'
+        args = args.split(' ')
+        if len(args) == 7:
+            src_user, src_region, dest_user, dest_region, src_instance_name, dest_instance_name, flavor = map(str, args)
+            snapshot_name = str(src_instance_name + str(datetime.now().isoformat()))
+            try:
+                print("make snap")
+                make_snapshot_v3(self._find_connection(src_user).get_nova_connection(src_region), src_instance_name, snapshot_name)
+                print("snap done")
+                print("make migration")
+                migration_v3(self._find_connection(src_user).get_glance_connection(src_region),
+                             self._find_connection(dest_user).get_glance_connection(dest_region),
+                             snapshot_name, snapshot_name, "qcow2", "bare")
+                print("migration done")
+                print("make launch")
+                launch_instance_v3(self._find_connection(dest_user).get_nova_connection(dest_region),
+                                   dest_instance_name, snapshot_name, flavor,
+                                   get_ovh_default_nics_v3(
+                                       self._current_connection.get_neutron_connection(dest_region)))
+                print("launch done")
+            except Exception as error:
+                print(error)
+                print("Error")
+        else:
+            print("Usage error")
+
     def do_migration(self, args):
-        'Make a migration between 2 regions. Use: migration src_region dest_region src_instance_name dest_instance_name instance_flavor'
+        'Make a migration between 2 regions.\nUse: migration src_region dest_region src_instance_name dest_instance_name instance_flavor'
         args = args.split(' ')
         if len(args) == 5:
             src_region, dest_region, src_instance, dest_instance, flavor = map(str, args)
@@ -188,7 +215,7 @@ class Shell(cmd.Cmd):
             try:
                 auth_url = ask_credential([(False, "Auth url: ")])[0]
                 username = ask_credential([(False, "Username: ")])[0]
-                if self._find_connection(auth_url, username):
+                if self._connection_exist(auth_url, username):
                     print("Already login to {0} as {1}".format(auth_url, username))
                     return None
                 user_domain_name = ask_credential([(False, "User domain name: ")])[0]
@@ -205,8 +232,14 @@ class Shell(cmd.Cmd):
             is_auth = True
         return authentication
 
-    def _find_connection(self, auth_url: str, username: str):
+    def _connection_exist(self, auth_url: str, username: str):
         for connection in self._connections:
             if connection.authentication.auth_url == auth_url and connection.authentication.username == username:
                 return True
         return False
+
+    def _find_connection(self, username: str):
+        for connection in self._connections:
+            if connection.authentication.username == username:
+                return connection
+        return None
