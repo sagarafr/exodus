@@ -1,0 +1,48 @@
+{
+  "client": {
+    "x-ovh-objectName": "web_site.client",
+    "description": "A client",
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["auth", "username", "password", "default_domain"],
+    "properties": {
+      "id": {
+        "type": "string",
+        "description": "Unique UUID of a client",
+        "x-ovh-readOnly": true
+      },
+      "username": {
+        "type": "string",
+        "description": "Client username",
+        "x-ovh-readOnly": true
+      },
+      "password": {
+        "type": "string",
+        "description": "Client password",
+        "x-ovh-readOnly": true
+      },
+      "auth": {
+        "type": "string",
+        "description": "Client auth",
+        "x-ovh-readOnly": true
+      },
+      "default_domain": {
+        "type": "string",
+        "description": "Client default domain",
+        "x-ovh-readOnly": true
+      },
+      "createdAt": {
+        "type": "string",
+        "description": "Date of migration creation",
+        "x-ovh-type": "datetime",
+        "x-ovh-readOnly": true
+      },
+      "updatedAt": {
+        "type": "string",
+        "description": "Date of migration last update",
+        "x-ovh-type": "datetime",
+        "x-ovh-readOnly": true
+      }
+    }
+  }
+}
