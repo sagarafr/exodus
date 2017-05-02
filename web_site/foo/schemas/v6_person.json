@@ -1,0 +1,36 @@
+{
+  "person": {
+    "x-ovh-objectName": "starter.person",
+    "description": "A person",
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["name", "age"],
+    "properties": {
+      "id": {
+        "type": "string",
+        "description": "Unique UUID of the person",
+        "x-ovh-readOnly": true
+      },
+      "name": {
+        "type": "string",
+        "description": "Name of the person"
+      },
+      "age": {
+        "type": "integer",
+        "description": "Age of the person"
+      },
+      "createdAt": {
+        "type": "string",
+        "description": "Date of person creation",
+        "x-ovh-type": "datetime",
+        "x-ovh-readOnly": true
+      },
+      "updatedAt": {
+        "type": "string",
+        "description": "Date of person last update",
+        "x-ovh-type": "datetime",
+        "x-ovh-readOnly": true
+      }
+    }
+  }
+}
