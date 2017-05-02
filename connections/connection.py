@@ -57,3 +57,6 @@ class Connection(dict):
     @property
     def endpoints(self):
         raise NotImplemented("Endpoints is not implemented in Connection class")
+
+    def __str__(self):
+        return "{auth_url:{0},username:{1},user_domain_name:{2}".format(self.auth_url, self.username, self.user_domain_name)

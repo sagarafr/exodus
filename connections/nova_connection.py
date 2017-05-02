@@ -19,3 +19,6 @@ class NovaConnection(Connection):
     @region_name.setter
     def region_name(self, value):
         self['region_name'] = value
+
+    def __str__(self):
+        return super().__str__() + '}' if 'region_name' not in self else "region_name:{0}".format(self.region_name)
