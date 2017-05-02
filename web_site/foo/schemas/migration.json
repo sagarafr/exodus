@@ -1,0 +1,36 @@
+{
+  "migration": {
+    "x-ovh-objectName": "web_site.migration",
+    "description": "A migration",
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["id", "status", "step"],
+    "properties": {
+      "id": {
+        "type": "string",
+        "description": "Unique UUID of a migration",
+        "x-ovh-readOnly": true
+      },
+      "status": {
+        "enum": ["to_do", "doing", "done"],
+        "description": "Status of a migration"
+      },
+      "step": {
+        "type": ["snapshot", "migration", "launch", "error"],
+        "description": "Step of a migration"
+      },
+      "createdAt": {
+        "type": "string",
+        "description": "Date of migration creation",
+        "x-ovh-type": "datetime",
+        "x-ovh-readOnly": true
+      },
+      "updatedAt": {
+        "type": "string",
+        "description": "Date of migration last update",
+        "x-ovh-type": "datetime",
+        "x-ovh-readOnly": true
+      }
+    }
+  }
+}
