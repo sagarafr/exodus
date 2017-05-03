@@ -4,7 +4,7 @@ from os import environ
 
 
 class AuthenticationV3:
-    def __init__(self, auth_url: str = "", username: str = "", password: str = "", user_domain_name: str = ""):
+    def __init__(self, auth_url: str = "", username: str = "", password: str = "", user_domain_name: str = "default"):
         auth_url = auth_url if auth_url != "" else environ['OS_AUTH_URL']
         username = username if username != "" else environ['OS_USERNAME']
         password = password if password != "" else environ['OS_PASSWORD']
@@ -18,6 +18,10 @@ class AuthenticationV3:
     @property
     def authentication(self):
         return self._authentication
+
+    @property
+    def token(self):
+        return self.session.get_token(self.authentication)
 
     @authentication.setter
     def authentication(self, value: v3.Password):
