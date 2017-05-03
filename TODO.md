@@ -5,7 +5,7 @@
 Tasks :
 
 - [X] Migration between region inside of same projects
-- [ ] Migration between region inside of different project
+- [X] Migration between region inside of different project
 - [X] Make a good architecture
 - [ ] Documentation
 - [ ] Error managing
@@ -16,3 +16,6 @@ Tasks :
 - [X] Test for neutron_connection
 - [X] Test for nova_connection
 - [X] Make minimalist console
+- [X] Make an API
+- [ ] Make the migration task
+- [ ] Make a website
