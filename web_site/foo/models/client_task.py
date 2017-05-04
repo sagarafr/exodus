@@ -2,30 +2,11 @@ from web_site.foo.extensions import db
 from web_site.foo.models import BaseModel
 from sqlalchemy.dialects import postgresql
 
-"""
-CREATE EXTENSION "uuid-ossp";
- 
- 
-CREATE TYPE  status AS ENUM (
-    'todo',
-    'doing',
-    'done',
-    'error'
-);
-  
-CREATE TABLE task (
-    id uuid NOT NULL PRIMARY KEY DEFAULT uuid_generate_v4(),
-    status status NOT NULL DEFAULT 'todo',
-    step character varying(255),
-    created_at timestamp with time zone NOT NULL DEFAULT NOW(),
-    data jsonb
-);
-"""
-
 
 class ClientTask(BaseModel):
-
-    __tablename__ = 'client_task'
+    # TODO CREATE EXTENSION "uuid-ossp"; in sql alchemy
+    __tablename__ = 'client_tasks'
+    __table_args__ = {'extend_existing': True}
 
     status = db.Column('status', db.Enum('todo', 'doing', 'done', 'error', name='status'), nullable=False, default='todo')
     step = db.Column('step', db.Enum('snapshot', 'migration', 'launch', name='step'), nullable=False, default='snapshot')
@@ -38,9 +19,31 @@ class ClientTask(BaseModel):
             'type': 'object',
             'additionalProperties': False,
             'required': ['data'],
+            'optional': ['step', 'status'],
             'properties': {
                 'data': {
                     'type': 'object'
+                },
+                'step': {
+                    'type': 'string'
+                },
+                'status': {
+                    'type': 'string'
                 }
             }
         }
+
+    def change_status(self):
+        if self.status == 'todo':
+            self.status = 'doing'
+        elif self.status == 'doing':
+            self.status = 'done'
+
+    def error_status(self):
+        self.status = 'error'
+
+    def change_step(self):
+        if self.step == 'snapshot':
+            self.step = 'migration'
+        elif self.step == 'migration':
+            self.step = 'launch'

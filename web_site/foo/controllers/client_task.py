@@ -8,7 +8,8 @@ class ClientTaskController(Controller):
     model_cls = ClientTask
 
     @classmethod
-    def async_migration(cls, id_task: str):
+    def async_migration(cls, id_task):
         client = cls.get(id_task)
-        tasks = cls.schedule_task(migration_task, client)
+        # TODO Schedule task or schedule chain ?
+        tasks = cls.schedule_task(migration_task, id_task)
         return client, tasks
