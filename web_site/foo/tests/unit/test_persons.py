@@ -1,6 +1,6 @@
 import unittest
 
-from ...models.persons import Person
+from web_site.foo.models.persons import Person
 
 
 class TestPerson(unittest.TestCase):

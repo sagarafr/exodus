@@ -1,6 +1,6 @@
 import unittest
 
-from ...apiv6 import (dict_to_camel_case, dict_to_snake_case,
+from web_site.foo.apiv6 import (dict_to_camel_case, dict_to_snake_case,
                       to_camel_case, to_snake_case,
                       format_object)
 

@@ -12,8 +12,8 @@ from flask.json import JSONEncoder
 from flask.app import _logger_lock
 from werkzeug.routing import Rule
 
-from .environments import env_config
-from .logs import setup_loggers, FlaskLoggerAdapter
+from web_site.foo.environments import env_config
+from web_site.foo.logs import setup_loggers, FlaskLoggerAdapter
 
 
 MODULES_TO_IMPORT = ('models', 'tasks', 'main', 'apiv6', 'doc', 'admin')
@@ -74,13 +74,13 @@ def create_app(config_file='config.yml', environment='default'):
     # Load env's extension
     env_config[environment].init_app(app)
 
-    from .main import main as main_blueprint
+    from web_site.foo.main import main as main_blueprint
     app.register_blueprint(main_blueprint)
 
-    from .apiv6 import api as apiv6_blueprint
+    from web_site.foo.apiv6 import api as apiv6_blueprint
     app.register_blueprint(apiv6_blueprint, url_prefix='/v6')
 
-    from .doc import doc as doc_blueprint
+    from web_site.foo.doc import doc as doc_blueprint
     app.register_blueprint(doc_blueprint, url_prefix='/doc')
 
     return app

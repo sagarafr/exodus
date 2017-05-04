@@ -5,7 +5,7 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy import inspect
 import jsonschema
 
-from ..extensions import db
+from web_site.foo.extensions import db
 
 
 def get_uuid():

@@ -6,9 +6,11 @@ from celery import chain
 from flask import current_app as app
 import sqlalchemy.exc
 
-from ..extensions import db, cel
-from ..models.persons import Person
-from ..tasks.persons import add_one_year
+from web_site.foo.extensions import db, cel
+"""
+from web_site.foo.models.persons import Person
+from web_site.foo.tasks.persons import add_one_year
+"""
 
 
 class ControllerError(Exception):
@@ -231,23 +233,3 @@ class Controller(metaclass=ControllerMeta):
             # Tasks are already executed
             return []
         return [chain_result.id]
-
-
-class PersonController(Controller):
-
-    model_cls = Person
-
-    @classmethod
-    def async_add_one_year(cls, person_id):
-        person = cls.get(person_id)
-        tasks = cls.schedule_task(add_one_year, person_id)
-        return person, tasks
-
-    @classmethod
-    def async_add_two_year(cls, person_id):
-        person = cls.get(person_id)
-        person_chain = chain(
-            add_one_year.si(person_id), add_one_year.si(person_id),
-        )
-        tasks = cls.schedule_chain('add_two_year', person_chain)
-        return person, tasks

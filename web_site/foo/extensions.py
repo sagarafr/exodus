@@ -41,7 +41,7 @@ class FlaskCelery(Celery):
                 return int(10 * math.log((attempts+2)*(attempts+1)))
 
             def __call__(self, *args, **kwargs):
-                from .tasks import UnrecoverableError
+                from web_site.foo.tasks import UnrecoverableError
                 try:
                     db.session.rollback()
                     return super().__call__(*args, **kwargs)
