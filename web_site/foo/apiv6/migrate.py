@@ -33,6 +33,7 @@ def post_migrate():
 @api.route('/migrate/<string:id_task>', methods=['GET'])
 def get_migrate(id_task: str):
     """Get all instance in details"""
+    # TODO refactor this
     creds_src, creds_dest = _get_creds_from_database(id_task)
     response = {'from': dict(), 'to': dict()}
     connection_src = Connections(AuthenticationV3(**creds_src), ConnectionsVersion())
@@ -50,6 +51,7 @@ def get_migrate(id_task: str):
 @api.route('/migrate/<string:id_task>/instance', methods=['GET'])
 def get_migrate_instance(id_task: str):
     """Get all instances name"""
+    # TODO refactor this
     creds_src, creds_dest = _get_creds_from_database(id_task)
     response = {'from': dict(), 'to': dict()}
     connection_src = Connections(AuthenticationV3(**creds_src), ConnectionsVersion())
@@ -67,6 +69,7 @@ def get_migrate_instance(id_task: str):
 @api.route('/migrate/<string:id_task>/flavor', methods=['GET'])
 def get_migrate_flavor(id_task: str):
     """Get all flavors name"""
+    # TODO refactor this
     creds_src, creds_dest = _get_creds_from_database(id_task)
     response = {'from': dict(), 'to': dict()}
     connection_src = Connections(AuthenticationV3(**creds_src), ConnectionsVersion())
@@ -84,7 +87,15 @@ def get_migrate_flavor(id_task: str):
 @api.route('/migrate/<string:id_task>/start', methods=['POST'])
 def post_migrate_start(id_task: str):
     """Start the migration"""
-    client, _ = ClientTaskController.async_migration(id_task)
+    app.logger.info(id_task)
+    if not _check_post_migrate_start():
+        return format_error(400, 'The server did not understand your request')
+    app.logger.info(id_task)
+    # TODO test this
+    if not _check_post_migrate_status(id_task, "todo"):
+        return format_error(400, 'The server did not understand your request')
+    _register_task(id_task)
+    client, task = ClientTaskController.async_migration(id_task)
     return single_object(client, ['status', 'step'], 200)
 
 
@@ -116,3 +127,36 @@ def _check_data():
 
 def _get_creds(data: dict):
     return {'username': data.get('username'), 'password': data.get('password'), 'auth_url': data.get('auth_url')}
+
+
+def _check_post_migrate_start():
+    first_keys = ['from', 'to']
+    from_keys = [['region', 'machine_name'], ['region', 'machine_id']]
+    to_keys = ['region', 'machine_name', 'flavor']
+    # TODO make a check if the status of the migration
+    try:
+        app.logger.info(check_existence(request.json, first_keys))
+    except Exception as msg:
+        app.logger.warning(msg)
+    if request.is_json and check_existence(request.json, first_keys) and (check_existence(request.json['from'], from_keys[0]) or check_existence(request.json['from'], from_keys[1])) and check_existence(request.json['to'], to_keys):
+        return True
+    return False
+
+
+def _check_post_migrate_status(id_task: str, status: str):
+    client = ClientTaskController.get(id_task)
+    return client['status'] == status
+
+
+def _register_task(id_task: str):
+    # TODO make a new get in the controller to remove status and step
+    client = ClientTaskController.get(id_task)
+    app.logger.info(client['data']['from'])
+    app.logger.info(request.json['from'])
+    client['data']['from'].update(request.json['from'].copy())
+    client['data']['to'].update(request.json['to'].copy())
+    if 'status' in client:
+        del client['status']
+    if 'step' in client:
+        del client['step']
+    ClientTaskController.update(id_task, client)
