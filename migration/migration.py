@@ -5,6 +5,7 @@ from os import mkfifo
 from os import fork
 from os import unlink
 from os import wait
+from os import _exit as exit_child
 
 
 def migration(glance_source: GlanceConnection, glance_destination: GlanceConnection,
@@ -36,4 +37,4 @@ def migration(glance_source: GlanceConnection, glance_destination: GlanceConnect
             for binary_data in data.wrapped:
                 writing_pipe.write(binary_data)
             writing_pipe.close()
-            exit(0)
+            exit_child(0)
