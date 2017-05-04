@@ -17,5 +17,5 @@ Tasks :
 - [X] Test for nova_connection
 - [X] Make minimalist console
 - [X] Make an API
-- [ ] Make the migration task
+- [X] Make the migration task
 - [ ] Make a website
