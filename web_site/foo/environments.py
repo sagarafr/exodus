@@ -3,8 +3,8 @@ import os
 from raven import Client
 from raven.contrib.celery import register_signal
 
-from .extensions import cel, cors, db, migrate, sentry, jsonschema, admin
-from .logs import setup_loggers
+from web_site.foo.extensions import cel, cors, db, migrate, sentry, jsonschema, admin
+from web_site.foo.logs import setup_loggers
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 

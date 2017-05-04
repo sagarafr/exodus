@@ -1,4 +1,4 @@
-from . import main
+from web_site.foo.main import main
 
 
 @main.route('/mon/ping')

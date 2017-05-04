@@ -6,7 +6,7 @@ import os.path
 
 from flask import redirect, send_from_directory, url_for
 
-from . import doc
+from web_site.foo.doc import doc
 
 
 @doc.route('/')

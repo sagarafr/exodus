@@ -3,8 +3,8 @@ import contextlib
 
 from flask_testing import TestCase
 
-from ... import create_app
-from ...extensions import db
+from web_site.foo import create_app
+from web_site.foo.extensions import db
 
 
 class FunctionalTest(TestCase):

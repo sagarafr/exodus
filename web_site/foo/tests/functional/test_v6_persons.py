@@ -1,6 +1,6 @@
 import json
 
-from . import FunctionalTest
+from web_site.foo.tests.functional import FunctionalTest
 
 
 class PersonsTest(FunctionalTest):

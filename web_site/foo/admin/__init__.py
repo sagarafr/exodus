@@ -1,10 +1,6 @@
 from flask import redirect, url_for, request
-from flask_admin.actions import action
+# from flask_admin.actions import action
 from flask_admin.contrib.sqla import ModelView
-
-
-from ..extensions import admin, db
-from ..models.persons import Person
 
 
 class ExtendedModelView(ModelView):
@@ -74,17 +70,3 @@ class ExtendedModelView(ModelView):
         controller = self._get_controller()
         controller._delete(model.id)
         return True
-
-
-class PersonView(ExtendedModelView):
-    def __init__(self, *args, **kwargs):
-        super().__init__(Person, db.session, *args, **kwargs)
-
-    @action('add_one_year', 'Add async one year',
-            'Are you sure you want to add one year?')
-    def action_add_one_year(self, ids):
-        controller = self._get_controller()
-        for obj_id in ids:
-            controller.async_add_one_year(obj_id)
-
-admin.add_view(PersonView())

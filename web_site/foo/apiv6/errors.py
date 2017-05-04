@@ -1,8 +1,8 @@
 from flask import jsonify, make_response, g
 from jsonschema.exceptions import ValidationError
 
-from . import api
-from ..controllers import NotFoundError
+from web_site.foo.apiv6 import api
+from web_site.foo.controllers import NotFoundError
 
 
 def format_controller_error(e):
