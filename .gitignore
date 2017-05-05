@@ -220,7 +220,7 @@ ENV/
 .ropeproject
 
 # mkdocs documentation
-/site
+# /site
 
 ### Vim ###
 # swap
@@ -236,3 +236,4 @@ Session.vim
 tags
 
 # End of https://www.gitignore.io/api/vim,emacs,nanoc,python,pycharm
+!/web_site/
