@@ -10,17 +10,17 @@ def main():
              "username": input("Username: "),
              "password": getpass()}
     connection = AuthenticationV3(**creds)
-    glance_creds_src = {"region_name": "GRA3",
+    glance_creds_src = {"region_name": input("Region name at source: "),
                         "version": "2",
                         "authentication_v3": connection}
-    glance_creds_dest = {"region_name": "BHS3",
+    glance_creds_dest = {"region_name": input("Region name at destination: "),
                          "version": "2",
                          "authentication_v3": connection}
 
     ovh_glance_connection_source = GlanceConnection(**glance_creds_src)
     ovh_glance_connection_destination = GlanceConnection(**glance_creds_dest)
     migration(ovh_glance_connection_source, ovh_glance_connection_destination,
-              input("Snapshot name: "), input("Server name: "), input("Disk format: "), input("Container format: "))
+              input("Snapshot name at source: "), input("Snapshot name at destination: "))
 
 
 if __name__ == '__main__':
