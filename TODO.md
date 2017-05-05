@@ -7,7 +7,7 @@ Tasks :
 - [X] Migration between region inside of same projects
 - [X] Migration between region inside of different project
 - [X] Make a good architecture
-- [ ] Documentation
+- [X] Documentation
 - [ ] Error managing
 - [ ] Test for ask_credential
 - [X] Test for authentication
