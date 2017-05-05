@@ -6,8 +6,8 @@ from web_site.foo.apiv6 import single_object
 from web_site.foo.apiv6.errors import format_error
 from web_site.foo.controllers.client_task import ClientTaskController
 from authentication.authentication import AuthenticationV3
-from shell.shell import Connections
-from shell.shell import ConnectionsVersion
+from connections.connections import Connections
+from connections.connections import ConnectionsVersion
 from utils.check_exitence import check_existence
 from copy import deepcopy
 
