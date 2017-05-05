@@ -1,3 +1,4 @@
+import configparser
 from connections.glance_connection import GlanceConnection
 from connections.neutron_connection import NeutronConnection
 from connections.nova_connection import NovaConnection
@@ -8,14 +9,14 @@ class ConnectionsVersion:
     """
     ConnectionVersion class content all version hard coded in module
     """
-    # TODO make a configuration file for this
-    def __init__(self):
+    def __init__(self, filename: str = ""):
         """
         Change the initialization in function of module version
         """
-        self._glance_version = "2"
-        self._neutron_version = "2"
-        self._nova_version = "2"
+        config = self._init_configuration(filename)
+        self._glance_version = config.get("Glance", "version") if config is not None and config.has_section("Glance") and config.has_option("Glance", "version") else "2"
+        self._neutron_version = config.get("Neutron", "version") if config is not None and config.has_section("Neutron") and config.has_option("Nova", "version") else "2"
+        self._nova_version = config.get("Nova", "version") if config is not None and config.has_section("Nova") and config.has_option("Nova", "version") else "2"
 
     @property
     def nova_version(self):
@@ -43,6 +44,20 @@ class ConnectionsVersion:
         :return: str of glance version 
         """
         return self._glance_version
+
+    @staticmethod
+    def _init_configuration(configure_file):
+        config = configparser.ConfigParser()
+        try:
+            with open(configure_file, 'r') as fd_file:
+                config.read_file(fd_file)
+        except FileNotFoundError as file_not_found:
+            return None
+        except PermissionError as permissions:
+            return None
+        except Exception as exception:
+            return None
+        return config
 
 
 class Connections:
