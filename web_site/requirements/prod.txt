@@ -1,3 +1,0 @@
--r common.txt
-gunicorn==19.6.0
-djehouty==0.1.4

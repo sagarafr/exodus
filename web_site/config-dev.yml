@@ -1,4 +1,0 @@
-SQLALCHEMY_DATABASE_URI: postgresql://postgres:ow2ptLo5"^BjVB=J(?>"O@rYp@localhost/database
-CELERY_CONF:
-    BROKER_URL: redis://217.182.87.226/1
-    CELERY_RESULT_BACKEND: redis://217.182.87.226/2
