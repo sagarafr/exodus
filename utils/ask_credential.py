@@ -4,8 +4,8 @@ from getpass import getpass
 def ask_credential(elements: list):
     """
     Ask credentials
-    :param elements: list of tuple. Tuple must follow this schema (bool, str)
-     if bool is true then it's a password else it's not
+
+    :param elements: list of tuple. Tuple must follow this schema (bool, str) if bool is true then it's a password else it's not
     :return: answers
     """
     answers = []
