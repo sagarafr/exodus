@@ -10,10 +10,9 @@ from web_site.foo.commands.generate_schema import GenerateSchema
 # from web_site.foo.commands.persons import person_manager
 from web_site.foo.commands.task_manager import client_task_manager
 
-# TODO make normal (like starter git repo)
 app = create_app(
-    '/home/arch/exodus/web_site/config-example.yml',
-    'dev'
+    os.getenv('APP_CONFIG') or 'config.yml',
+    os.getenv('APP_ENV') or 'default'
 )
 manager = Manager(app)
 
