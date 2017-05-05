@@ -1,17 +1,29 @@
+import cmd
+from json import dumps
+from datetime import datetime
 from authentication.authentication import AuthenticationV3
 from migration.snapshot import make_snapshot
 from migration.migration import migration
 from migration.launch_instance import launch_instance
 from utils.ask_credential import ask_credential
 from utils.get_ids import get_ovh_default_nics
-from json import dumps
-from datetime import datetime
-import cmd
 from connections.connections import ConnectionsVersion
 from connections.connections import Connections
 
 
 class Shell(cmd.Cmd):
+    # TODO make a swop_connection to change the current connection
+    """
+    A basic exodus shell client. The commands available are :
+    * bye / exit : exit the console
+    * connection : ask credentials and make a connection to a openstack project
+    * list_connection : list all different connections
+    * catalog : print all information of the current connection
+    * migration : make a migration of one instance between to 2 regions or 2 projects
+    * list_flavor : list flavors of the current connection
+    * list_region : list regions of the current connection
+    * list_instance : list all instances of the current connection
+    """
     intro = "Welcome to the exodus shell. Type help or ? to list commands.\n"
     prompt = '(exodus) '
 
@@ -127,6 +139,9 @@ class Shell(cmd.Cmd):
                     print('\n'.join(str(s) for s in self._current_connection.nova[region].connection.servers.list()))
 
     def _init_auth(self):
+        """
+        Initialize a connection. If a connection exist already doesnt create a new connection
+        """
         is_auth = False
         authentication = None
         while not is_auth:
@@ -151,12 +166,24 @@ class Shell(cmd.Cmd):
         return authentication
 
     def _connection_exist(self, auth_url: str, username: str):
+        """
+        Check if a connection exists already
+
+        :param auth_url: Authentication url with version 3 
+        :param username: Username of the project
+        """
         for connection in self._connections:
             if connection.authentication.auth_url == auth_url and connection.authentication.username == username:
                 return True
         return False
 
     def _find_connection(self, username: str):
+        """
+        Find a connection with username in parameter
+        
+        :param username: Username of a project 
+        :return: None or a connection 
+        """
         for connection in self._connections:
             if connection.authentication.username == username:
                 return connection
