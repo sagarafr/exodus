@@ -12,11 +12,11 @@ from connections.connections import Connections
 
 
 class Shell(cmd.Cmd):
-    # TODO make a swop_connection to change the current connection
     """
     A basic exodus shell client. The commands available are :
     * bye / exit : exit the console
     * connection : ask credentials and make a connection to a openstack project
+    * change_connection : change the current connection
     * list_connection : list all different connections
     * catalog : print all information of the current connection
     * migration : make a migration of one instance between to 2 regions or 2 projects
@@ -64,10 +64,20 @@ class Shell(cmd.Cmd):
             self._connections.append(self._current_connection)
             print("You are connected to {0} as {1}\n".format(authentication.auth_url, authentication.username))
 
+    def do_change_connection(self, args):
+        'Change the current connection into an other.\nUse: change_connection username'
+        args = args.split(' ')
+        if len(args) == 1:
+            connection = self._find_connection(args[0])
+            if connection is not None:
+                self._current_connection = connection
+            else:
+                print("The username: " + args[0] + " is not found")
+        else:
+            print("Bad command")
+
     def do_migration(self, args):
-        'Make a migration between 2 project.\n\
-        Use: migration_between_project [src_user] src_region [dest_user] dest_region src_instance_name \
-        dest_instance_name flavor'
+        'Make a migration between 2 project.\nUse: migration [src_user] src_region [dest_user] dest_region src_instance_name dest_instance_name flavor'
         args = args.split(' ')
         src_user_connection, dest_user_connection = None, None
         src_region, dest_region, src_instance_name, dest_instance_name, flavor = None, None, None, None, None
