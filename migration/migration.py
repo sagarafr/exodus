@@ -8,11 +8,9 @@ from os import wait
 from os import _exit as exit_child
 
 
-# TODO make this more secure again and maybe disk_format and container_format optional
-# TODO make an other function that take directly the uuid of the snapshot ?
 def migration(glance_source: GlanceConnection, glance_destination: GlanceConnection,
               snapshot_name: str, server_name_dest: str,
-              disk_format: str, container_format: str):
+              disk_format: str = "qcow2", container_format: str = "bare"):
     """
     Launch the migration of a snapshot_name between 2 GlanceConnection regions in "streaming" mode
     If there are multiple 
@@ -23,13 +21,23 @@ def migration(glance_source: GlanceConnection, glance_destination: GlanceConnect
     :param server_name_dest: str content the snapshot name in the glance_destionation region
     :param disk_format: str content the disk_format of the snapshot
     :param container_format: str content the container_format of the snapshot
+    :raise: ValueError if snapshot_name is not found
     """
-    snapshot_uuid_list = get_snapshot_id_from_glance(glance_source, snapshot_name)
-    if len(snapshot_uuid_list) == 0:
-        raise ValueError("Couldn't find the following snapshot: " + snapshot_name)
+    snapshot_uuid = None
+    try:
+        snapshot_uuid = get_snapshot_id_from_glance(glance_source, snapshot_name)[0]
+    except IndexError as index:
+        raise ValueError(snapshot_name + " snapshot not found")
+    try:
+        migration_from_uuid(glance_source, glance_destination, snapshot_uuid, server_name_dest,
+                            disk_format, container_format)
+    except:
+        raise
 
-    # TODO lets make a user choice or raise an exception ?
-    snapshot_uuid = snapshot_uuid_list[0]
+
+def migration_from_uuid(glance_source: GlanceConnection, glance_destination: GlanceConnection,
+                        snapshot_uuid, server_name_dest: str,
+                        disk_format: str = "qcow2", container_format: str = "bare"):
     data = glance_source.connection.images.data(snapshot_uuid)
     pipe_filename = NamedTemporaryFile().name
     image = glance_destination.connection.images.create(name=server_name_dest,
