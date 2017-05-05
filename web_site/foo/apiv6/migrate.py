@@ -78,7 +78,7 @@ def get_migrate_flavor(id_task: str):
         if creds_src != creds_dest:
             connection_dest = Connections(AuthenticationV3(**creds_dest), ConnectionsVersion())
             for region_to in connection_dest.nova:
-                response['to'].update({region_to: [s.to_dict()['name'] for s in connection_src.nova[region_to].flavors.servers.list()]})
+                response['to'].update({region_to: [s.to_dict()['name'] for s in connection_src.nova[region_to].connection.flavors.list()]})
         else:
             response['to'] = deepcopy(response['from'])
     return single_object(response, ['from', 'to'])
@@ -149,14 +149,15 @@ def _check_post_migrate_status(id_task: str, status: str):
 
 
 def _register_task(id_task: str):
-    # TODO make a new get in the controller to remove status and step
     client = ClientTaskController.get(id_task)
     app.logger.info(client['data']['from'])
     app.logger.info(request.json['from'])
     client['data']['from'].update(request.json['from'].copy())
     client['data']['to'].update(request.json['to'].copy())
+    # TODO can remove this ?
     if 'status' in client:
         del client['status']
+    # TODO can remove this ?
     if 'step' in client:
         del client['step']
     ClientTaskController.update(id_task, client)
