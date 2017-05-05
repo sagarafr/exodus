@@ -5,8 +5,8 @@ from migration.snapshot import make_snapshot
 from migration.migration import migration
 from migration.launch_instance import launch_instance
 from utils.get_ids import get_ovh_default_nics
-from shell.shell import Connections
-from shell.shell import ConnectionsVersion
+from connections.connections import Connections
+from connections.connections import ConnectionsVersion
 from web_site.foo.logs import TaskLoggerAdapter
 from web_site.foo.extensions import cel
 from web_site.foo.extensions import db
