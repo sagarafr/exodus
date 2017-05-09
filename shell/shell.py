@@ -6,7 +6,11 @@ from migration.snapshot import make_snapshot
 from migration.migration import migration
 from migration.launch_instance import launch_instance
 from utils.ask_credential import ask_credential
+from utils.find_flavors import is_good_flavor
+from utils.find_flavors import have_instance
 from utils.get_ids import get_ovh_default_nics
+from utils.get_from_image import get_container_format
+from utils.get_from_image import get_disk_format
 from connections.connections import ConnectionsVersion
 from connections.connections import Connections
 
@@ -76,9 +80,10 @@ class Shell(cmd.Cmd):
         else:
             print("Bad command")
 
+    # TODO add the possibility to choose the network flavor or the id_instance or container_format or disk_format ?
     def do_migration(self, args):
         'Make a migration between 2 project.\nUse: migration [src_user] src_region [dest_user] dest_region src_instance_name dest_instance_name flavor'
-        args = args.split(' ')
+        args = [arg.strip() for arg in args.split(' ') if arg != '']
         src_user_connection, dest_user_connection = None, None
         src_region, dest_region, src_instance_name, dest_instance_name, flavor = None, None, None, None, None
         if len(args) == 7:
@@ -92,29 +97,41 @@ class Shell(cmd.Cmd):
         if len(args) == 7 or len(args) == 5:
             snapshot_name = str(src_instance_name + str(datetime.now().isoformat()))
             try:
-                if src_region in src_user_connection.nova and \
-                                src_region in src_user_connection.glance and \
-                                dest_region in dest_user_connection.glance and \
-                                dest_region in dest_user_connection.nova and \
-                                dest_region in dest_user_connection.neutron:
+                if src_region not in src_user_connection.nova:
+                    print("{} is not in Nova region module".format(src_region))
+                elif dest_region not in dest_user_connection.nova:
+                    print("{} is not in Nova region module".format(dest_region))
+                elif src_region not in src_user_connection.glance:
+                    print("{} is not in Glance region module".format(src_region))
+                elif dest_region not in src_user_connection.glance:
+                    print("{} is not in Glance region module".format(dest_region))
+                elif dest_region not in dest_user_connection.neutron:
+                    print("{} is not in Neutron region module".format(dest_region))
+                elif not have_instance(src_user_connection.get_nova_connection(src_region), src_instance_name):
+                    print("The {0} instance is not in {1} Nova region module".format(src_instance_name, src_region))
+                elif not is_good_flavor(src_user_connection.get_nova_connection(src_region), src_instance_name, flavor):
+                    print("The flavor {0} is not to small for {1} instance".format(flavor, src_instance_name))
+                else:
                     print("make snap")
                     make_snapshot(src_user_connection.get_nova_connection(src_region), src_instance_name, snapshot_name)
                     print("snap done")
                     print("make migration")
+                    # TODO make the default disk_format and container_format generic
+                    disk_format = get_disk_format(src_user_connection.get_glance_connection(src_region), snapshot_name)
+                    disk_format = "qcow2" if len(disk_format) == 0 else disk_format[0]
+                    container_format = get_container_format(src_user_connection.get_glance_connection(src_region), snapshot_name)
+                    container_format = "bare" if len(container_format) == 0 else container_format[0]
                     migration(src_user_connection.get_glance_connection(src_region),
                               dest_user_connection.get_glance_connection(dest_region),
-                              snapshot_name, snapshot_name, "qcow2", "bare")
+                              snapshot_name, snapshot_name, disk_format, container_format)
                     print("migration done")
                     print("make launch")
                     launch_instance(dest_user_connection.get_nova_connection(dest_region),
                                     dest_instance_name, snapshot_name, flavor,
                                     get_ovh_default_nics(dest_user_connection.get_neutron_connection(dest_region)))
                     print("launch done")
-                else:
-                    print("Can not find regions in the some connections")
             except Exception as error:
                 print(error)
-                print("Error")
         else:
             print("Usage error")
 
@@ -161,7 +178,8 @@ class Shell(cmd.Cmd):
                 if self._connection_exist(auth_url, username):
                     print("Already login to {0} as {1}".format(auth_url, username))
                     return None
-                user_domain_name = ask_credential([(False, "User domain name: ")])[0]
+                tmp = ask_credential([(False, "User domain name[default by default]: ")])[0]
+                user_domain_name = tmp if tmp != '' else "default"
                 password = ask_credential([(True, None)])[0]
                 authentication = AuthenticationV3(auth_url=auth_url, username=username,
                                                   user_domain_name=user_domain_name, password=password)
