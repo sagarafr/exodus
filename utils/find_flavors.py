@@ -28,6 +28,7 @@ def have_instance(nova_connection: NovaConnection, instance_name: str):
 def is_good_flavor(nova_connection: NovaConnection, instance_src_name: str, flavor_dest: str):
     """
     Return True if the disk capacity of flavor_dest is superior or equal to the disk capacity of instance_src_name instance
+    
     :param nova_connection: NovaConnection in the same region of instance_src_name
     :param instance_src_name: Instance to compare
     :param flavor_dest: Flavor to compare
