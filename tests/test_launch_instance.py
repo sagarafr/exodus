@@ -12,7 +12,6 @@ def main():
              "password": getpass(),
              "region_name": "BHS3",
              "version": "2"}
-
     ovh_nova_connection = NovaConnection(**creds)
     ovh_neutron_connection = NeutronConnection(**creds)
     launch_instance(ovh_nova_connection, input("Instance name: "), input("Snapshot name: "), input("Flavor name: "),
