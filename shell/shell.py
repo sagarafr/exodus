@@ -1,7 +1,11 @@
 import cmd
 from json import dumps
 from datetime import datetime
+from re import search
+from re import fullmatch
+from math import trunc
 from authentication.authentication import AuthenticationV3
+from authentication.authentication import AuthenticationV2
 from migration.snapshot import make_snapshot
 from migration.migration import migration
 from migration.launch_instance import launch_instance
@@ -37,6 +41,7 @@ class Shell(cmd.Cmd):
         self._connections = list()
         self._alias = dict()
         self._current_connection = None
+        self._url_validation = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
 
     def do_bye(self, arg):
         'Exit the exodus console'
@@ -174,15 +179,33 @@ class Shell(cmd.Cmd):
         while not is_auth:
             try:
                 auth_url = ask_credential([(False, "Auth url: ")])[0]
+                if fullmatch(self._url_validation, auth_url) is None:
+                    print("Auth url is not a good url")
+                    continue
+
+                version = self._get_version(auth_url)
+                if version is None or not 2 <= version <= 3:
+                    print("Unknown authentication version")
+                    continue
+
                 username = ask_credential([(False, "Username: ")])[0]
                 if self._connection_exist(auth_url, username):
                     print("Already login to {0} as {1}".format(auth_url, username))
                     return None
+
                 tmp = ask_credential([(False, "User domain name[default by default]: ")])[0]
                 user_domain_name = tmp if tmp != '' else "default"
+
                 password = ask_credential([(True, None)])[0]
-                authentication = AuthenticationV3(auth_url=auth_url, username=username,
-                                                  user_domain_name=user_domain_name, password=password)
+
+                authentication = None
+                if version == 3:
+                    authentication = AuthenticationV3(auth_url=auth_url, username=username,
+                                                      user_domain_name=user_domain_name, password=password)
+                elif version == 2:
+                    tenant_id = ask_credential([(False, "Tenant id: ")])[0]
+                    authentication = AuthenticationV2(auth_url=auth_url, username=username,
+                                                      password=password, tenant_id=tenant_id)
             except TypeError as type_error:
                 print(type_error)
                 continue
@@ -216,3 +239,17 @@ class Shell(cmd.Cmd):
             if connection.authentication.username == username:
                 return connection
         return None
+
+    @staticmethod
+    def _get_version(auth_url: str):
+        search_group = search(".*/v([0-9.]+).*", auth_url)
+        if search_group is None or search_group.groups == 0:
+            version = ask_credential([False, "Version of Auth url: "])[0]
+        else:
+            version = search_group.group(1)
+        if version is not None:
+            try:
+                version = int(trunc(float(version)))
+            except ValueError:
+                return None
+        return version
