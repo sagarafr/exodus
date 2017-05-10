@@ -14,27 +14,19 @@ class NeutronConnection(Connection):
         self._connection = NeutronClient(session=self.authentication.session, region_name=self.region_name)
 
     @property
-    def region_name(self):
-        """
-        Region name property
-        :return: str content the region name
-        """
-        return self['region_name']
-
-    @region_name.setter
-    def region_name(self, value):
-        """
-        Change only the property of region_name. DO NOT MAKE A RECONNECTION AFTER THIS
-
-        :param value: str content the region name in glance module
-        """
-        self['region_name'] = value
-
-    @property
     def region(self):
         """
-        Region property of network_region AuthenticationV3
+        Region property of network_region Authentication
 
-        :return: None or set content all region property 
+        :return: None or set content all region property
         """
         return self.authentication.network_region
+
+    @property
+    def endpoints(self):
+        """
+        Endpoints property of network Authentication
+
+        :return: None or dict content endpoints
+        """
+        return self.authentication.network

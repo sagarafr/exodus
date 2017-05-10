@@ -12,40 +12,23 @@ class GlanceConnection(Connection):
         *region_name = region name of GlanceClient
         """
         super().__init__(**kwargs)
-        self._connection = GlanceClient(version=kwargs['version'], session=self.authentication.session, region_name=self['region_name'])
-
-    @property
-    def endpoints(self):
-        """
-        Endpoints property of image AuthenticationV3
-
-        :return: None or dict content endpoints
-        """
-        return self.authentication.image
+        self._connection = GlanceClient(version=kwargs['version'], session=self.authentication.session,
+                                        region_name=self.region_name)
 
     @property
     def region(self):
         """
-        Region property of image_region AuthenticationV3
+        Region property of image_region Authentication
 
         :return: None or set content all region property
         """
         return self.authentication.image_region
 
     @property
-    def region_name(self):
+    def endpoints(self):
         """
-        Region name property
+        Endpoints property of image Authentication
 
-        :return: str content the region name 
+        :return: None or dict content endpoints
         """
-        return self['region_name']
-
-    @region_name.setter
-    def region_name(self, value):
-        """
-        Change only the property of region_name. DO NOT MAKE A RECONNECTION AFTER THIS
-
-        :param value: str content the region name in glance module
-        """
-        self['region_name'] = value
+        return self.authentication.image

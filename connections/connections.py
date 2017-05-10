@@ -2,7 +2,7 @@ import configparser
 from connections.glance_connection import GlanceConnection
 from connections.neutron_connection import NeutronConnection
 from connections.nova_connection import NovaConnection
-from authentication.authentication import AuthenticationV3
+from authentication.authentication import Authentication
 
 
 class ConnectionsVersion:
@@ -64,9 +64,9 @@ class Connections:
     """
     Connections manager that manage all glance, neutron and nova connections in all regions
     """
-    def __init__(self, authentication: AuthenticationV3, connections_versions: ConnectionsVersion):
+    def __init__(self, authentication: Authentication, connections_versions: ConnectionsVersion):
         """
-        :param authentication: AuthenticationV3 object 
+        :param authentication: Authentication object 
         :param connections_versions: ConnectionsVersion object
         """
         self._authentication = authentication
@@ -83,9 +83,9 @@ class Connections:
     @property
     def authentication(self):
         """
-        AuthenticationV3 property
+        Authentication property
 
-        :return: AuthenticationV3 object 
+        :return: Authentication object 
         """
         return self._authentication
 

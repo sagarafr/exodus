@@ -13,9 +13,9 @@ def main():
     glance_creds_src = {"region_name": input("Region name at source: "),
                         "version": "2",
                         "authentication_v3": connection}
-    glance_creds_dest = {"region_name": input("Region name at destination: "),
-                         "version": "2",
-                         "authentication_v3": connection}
+    glance_creds_dest = {"authentication": connection,
+                         "region_name": input("Region name at destination: "),
+                         "version": "2"}
 
     ovh_glance_connection_source = GlanceConnection(**glance_creds_src)
     ovh_glance_connection_destination = GlanceConnection(**glance_creds_dest)
