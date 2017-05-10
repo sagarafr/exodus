@@ -1,5 +1,6 @@
 from keystoneauth1.identity import v3
 from keystoneauth1.identity import v2
+from keystoneauth1.identity.v2 import Auth
 from keystoneauth1.session import Session
 from os import environ
 
@@ -65,7 +66,7 @@ class Authentication(object):
         return self.session.get_token(self.authentication)
 
     @authentication.setter
-    def authentication(self, value: v3.Password):
+    def authentication(self, value: Auth):
         """
         Authentication setter
 
@@ -250,8 +251,9 @@ class Authentication(object):
         Username property
 
         :return: str content the username 
+        :raise: NotImplementedError if call from Authentication class
         """
-        return self.authentication.get_cache_id_elements()['password_username']
+        raise NotImplementedError("Must implement username")
 
     @property
     def password(self):
@@ -259,8 +261,9 @@ class Authentication(object):
         Password property
 
         :return: str content the password
+        :raise: NotImplementedError if call from Authentication class
         """
-        return self.authentication.get_cache_id_elements()["password_password"]
+        raise NotImplementedError("Must implement password")
 
     @property
     def user_domain_id(self):
@@ -268,8 +271,9 @@ class Authentication(object):
         User domain name property
 
         :return: str content the user domain name
+        :raise: NotImplementedError if call from Authentication class
         """
-        return self.authentication.get_cache_id_elements()["password_user_domain_name"]
+        raise NotImplementedError("Must implement user domain id")
 
     @property
     def global_region(self):
@@ -308,8 +312,7 @@ class Authentication(object):
         :param elements: elements content all information in a module 
         :return: None or set content all region
         """
-        return set(
-            element['region_id'] for element in elements if 'region_id' in element) if elements is not None else None
+        raise NotImplementedError("Must implement _get_region function")
 
     def __str__(self):
         return "Auth url: " + str(self.auth_url) + " | Username: " + str(self.username)
@@ -346,6 +349,23 @@ class AuthenticationV3(Authentication):
         self._session = Session(auth=self.authentication)
         self._access = self.authentication.get_access(session=self.session)
         self._catalog = None if not self.access.has_service_catalog() else self.access.__dict__['_data']['token']['catalog']
+
+    @property
+    def username(self):
+        return self.authentication.get_cache_id_elements()['password_username']
+
+    @property
+    def password(self):
+        return self.authentication.get_cache_id_elements()['password_password']
+
+    @property
+    def user_domain_id(self):
+        return self.authentication.get_cache_id_elements()['password_user_domain_name']
+
+    @staticmethod
+    def _get_region(elements: dict = None):
+        return set(
+            element['region_id'] for element in elements if 'region_id' in element) if elements is not None else None
 
 
 class AuthenticationV2(Authentication):
@@ -384,3 +404,20 @@ class AuthenticationV2(Authentication):
         self._session = Session(auth=self.authentication)
         self._access = self.authentication.get_access(session=self.session)
         self._catalog = None if not self.access.has_service_catalog() else self.access.__dict__['_data']['access']['serviceCatalog']
+
+    @property
+    def username(self):
+        return self.authentication.get_cache_id_elements()['username']
+
+    @property
+    def password(self):
+        return self.authentication.get_cache_id_elements()['password']
+
+    @property
+    def user_domain_id(self):
+        return self.authentication.get_cache_id_elements()['auth_url']
+
+    @staticmethod
+    def _get_region(elements: dict = None):
+        return set(
+            element['region'] for element in elements if 'region' in element) if elements is not None else None
