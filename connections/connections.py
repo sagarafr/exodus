@@ -77,6 +77,10 @@ class Connections:
         self._init_connections()
 
     @property
+    def catalog(self):
+        return self.authentication.catalog
+
+    @property
     def authentication(self):
         """
         AuthenticationV3 property
