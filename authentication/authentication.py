@@ -20,6 +20,7 @@ class Authentication(object):
         :param tenant_id: str Tenant id (Important for version 2 but can be drop)
         """
         self._authentication = None
+        self._tenant_id = None
         self._session = None
         self._access = None
         self._catalog = None
@@ -276,6 +277,10 @@ class Authentication(object):
         raise NotImplementedError("Must implement user domain id")
 
     @property
+    def tenant_id(self):
+        return self._tenant_id
+
+    @property
     def global_region(self):
         """
         Region in common of all identity, compute, network, image, object_store and volume_v2 module
@@ -402,6 +407,7 @@ class AuthenticationV2(Authentication):
 
         self._authentication = v2.Password(auth_url=auth_url, username=username, password=password, tenant_id=tenant_id)
         self._session = Session(auth=self.authentication)
+        self._tenant_id = tenant_id
         self._access = self.authentication.get_access(session=self.session)
         self._catalog = None if not self.access.has_service_catalog() else self.access.__dict__['_data']['access']['serviceCatalog']
 

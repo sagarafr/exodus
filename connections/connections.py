@@ -155,7 +155,7 @@ class Connections:
         for region in regions:
             credentials = {"region_name": str(region),
                            "version": str(version),
-                           "authentication_v3": self.authentication}
+                           "authentication": self.authentication}
             var_storage[str(region)] = init_function(**credentials)
 
     def _init_connections(self):
