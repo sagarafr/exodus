@@ -13,3 +13,16 @@ For ubuntu version 16.04.2 LTS
 * Install novaclient with the following command : `sudo -H pip3 install python-novaclient`
 * Install glanceclient with the following command : `sudo -H pip3 install python-glanceclient`
 * Install neutronclient with the following command : `sudo -H pip3 install python-neutronclient`
+
+### Virtualenv install
+```
+    pyvenv-3.4 exodus
+    source bin/activate
+    pip3 install --upgrade pip
+    pip3 install setuptools --upgrade
+    pip3 install keystoneauth1
+    pip3 install python-novaclient
+    pip3 install python-neutronclient
+    pip3 install python-glanceclient
+    git clone ssh://git@stash.ovh.net:7999/cloud/exodus.git
+```
