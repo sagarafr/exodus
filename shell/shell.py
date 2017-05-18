@@ -4,6 +4,7 @@ from datetime import datetime
 from re import search
 from re import fullmatch
 from math import trunc
+from os import environ
 from authentication.authentication import AuthenticationV3
 from authentication.authentication import AuthenticationV2
 from migration.snapshot import make_snapshot
@@ -42,6 +43,7 @@ class Shell(cmd.Cmd):
         self._alias = dict()
         self._current_connection = None
         self._url_validation = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
+        self._env_connection()
 
     def do_bye(self, arg):
         'Exit the exodus console'
@@ -53,7 +55,10 @@ class Shell(cmd.Cmd):
 
     def do_catalog(self, arg):
         'Print the catalog'
-        print(dumps(self._current_connection.catalog, indent=4))
+        if self._current_connection is None:
+            print("You must have a valid connection")
+        else:
+            print(dumps(self._current_connection.catalog, indent=4))
 
     def do_list_connection(self, arg):
         'List all connection'
@@ -63,11 +68,7 @@ class Shell(cmd.Cmd):
     def do_connection(self, arg):
         'Make a connection'
         print("Connection\n")
-        authentication = None
-        try:
-            authentication = AuthenticationV3() if len(self._connections) == 0 else self._init_auth()
-        except:
-            authentication = self._init_auth()
+        authentication = self._init_auth()
         if authentication is not None:
             self._current_connection = Connections(authentication, self._connections_version)
             self._connections.append(self._current_connection)
@@ -85,6 +86,13 @@ class Shell(cmd.Cmd):
         else:
             print("Bad command")
 
+    # TODO make real_migration (make the flavor, dest_instance_name and network optional)
+    # TODO delete the old one
+    # TODO check the network
+    def do_real_migration(self, args):
+        'Make a real migration between 2 projects. IN WORKING PROGRESS'
+        return
+
     # TODO add the possibility to choose the network flavor or the id_instance or container_format or disk_format ?
     def do_migration(self, args):
         'Make a migration between 2 project.\nUse: migration [src_user] src_region [dest_user] dest_region src_instance_name dest_instance_name flavor'
@@ -99,6 +107,12 @@ class Shell(cmd.Cmd):
             src_region, dest_region, src_instance_name, dest_instance_name, flavor = map(str, args)
             src_user_connection = self._current_connection
             dest_user_connection = self._current_connection
+        if src_user_connection is None:
+            print("You don't have a valid connection at source.")
+            return
+        if dest_user_connection is None:
+            print("You don't have a valid connection at destination.")
+            return
         if len(args) == 7 or len(args) == 5:
             snapshot_name = str(src_instance_name + str(datetime.now().isoformat()))
             try:
@@ -131,6 +145,7 @@ class Shell(cmd.Cmd):
                               snapshot_name, snapshot_name, disk_format, container_format)
                     print("migration done")
                     print("make launch")
+                    # TODO make some modification : remove get_ovh_default_nics and send the origin nics
                     launch_instance(dest_user_connection.get_nova_connection(dest_region),
                                     dest_instance_name, snapshot_name, flavor,
                                     get_ovh_default_nics(dest_user_connection.get_neutron_connection(dest_region)))
@@ -142,33 +157,42 @@ class Shell(cmd.Cmd):
 
     def do_list_flavor(self, args):
         'List all flavor. Can be pass a regions name in parameter'
-        if len(args) == 0:
-            for region in self._current_connection.nova:
-                print(region)
-                print('\n'.join(str(s) for s in self._current_connection.nova[region].connection.flavors.list()))
+        if self._current_connection is None:
+            print("You must have a connection")
         else:
-            args = set(args.split(' '))
-            for region in args:
-                if region in self._current_connection.nova:
+            if len(args) == 0:
+                for region in self._current_connection.nova:
                     print(region)
                     print('\n'.join(str(s) for s in self._current_connection.nova[region].connection.flavors.list()))
+            else:
+                args = set(args.split(' '))
+                for region in args:
+                    if region in self._current_connection.nova:
+                        print(region)
+                        print('\n'.join(str(s) for s in self._current_connection.nova[region].connection.flavors.list()))
 
     def do_list_region(self, args):
         'List all region'
-        print("\n".join(str(r) for r in self._current_connection.authentication.global_region))
+        if self._current_connection is None:
+            print("You must have a connection")
+        else:
+            print("\n".join(str(r) for r in self._current_connection.authentication.global_region))
 
     def do_list_instance(self, args):
         'List all instance. Can be pass a regions name in parameter'
-        if len(args) == 0:
-            for region in self._current_connection.nova:
-                print(region)
-                print('\n'.join(str(s) for s in self._current_connection.nova[region].connection.servers.list()))
+        if self._current_connection is None:
+            print("You must have a connection")
         else:
-            args = set(args.split(' '))
-            for region in args:
-                if region in self._current_connection.nova:
+            if len(args) == 0:
+                for region in self._current_connection.nova:
                     print(region)
                     print('\n'.join(str(s) for s in self._current_connection.nova[region].connection.servers.list()))
+            else:
+                args = set(args.split(' '))
+                for region in args:
+                    if region in self._current_connection.nova:
+                        print(region)
+                        print('\n'.join(str(s) for s in self._current_connection.nova[region].connection.servers.list()))
 
     def _init_auth(self):
         """
@@ -242,6 +266,11 @@ class Shell(cmd.Cmd):
 
     @staticmethod
     def _get_version(auth_url: str):
+        """
+        Get the version number from an url
+        :param auth_url: string url
+        :return: int version number
+        """
         search_group = search(".*/v([0-9.]+).*", auth_url)
         if search_group is None or search_group.groups == 0:
             version = ask_credential([False, "Version of Auth url: "])[0]
@@ -253,3 +282,25 @@ class Shell(cmd.Cmd):
             except ValueError:
                 return None
         return version
+
+    def _env_connection(self):
+        """
+        Make an environment connection
+        """
+        auth_url = None if "OS_AUTH_URL" not in environ else environ["OS_AUTH_URL"]
+        username = None if "OS_USERNAME" not in environ else environ["OS_USERNAME"]
+        password = None if "OS_PASSWORD" not in environ else environ["OS_PASSWORD"]
+        tenant_id = None if "OS_TENANT_ID" not in environ else environ["OS_TENANT_ID"]
+        version = self._get_version(auth_url)
+        if version is None:
+            return None
+        else:
+            auth = None
+            if version == 2:
+                auth = AuthenticationV2(auth_url, username, password, tenant_id=tenant_id)
+            elif version == 3:
+                auth = AuthenticationV3(auth_url, username, password)
+            if auth is not None:
+                self._current_connection = Connections(auth, self._connections_version)
+                self._connections.append(self._current_connection)
+                print("You are connected to {0} as {1}\n".format(auth.auth_url, auth.username))
