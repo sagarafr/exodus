@@ -55,3 +55,14 @@ def is_good_flavor(nova_connection: NovaConnection, instance_src_name: str, flav
         if server_disk > base_disk:
             return False
     return True
+
+
+def find_flavor_name_from_id(nova_connection: NovaConnection, flavor_id: str):
+    try:
+        flavor_info = nova_connection.connection.flavors.get(flavor_id)
+    except Exception:
+        return None
+    flavor_info = dict(flavor_info.to_dict())
+    if 'name' in flavor_info:
+        return flavor_info['name']
+    return None
