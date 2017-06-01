@@ -1,7 +1,33 @@
 from novaclient import exceptions
 from connections.nova_connection import NovaConnection
+from connections.cinder_connection import CinderConnection
+from connections.glance_connection import GlanceConnection
 from utils.get_ids import get_server_id_from_nova
+from utils.get_ids import get_snapshot_id_from_glance
 from time import sleep
+
+
+def make_hard_disk_snapshot(cinder_connection: CinderConnection, glance_connection: GlanceConnection, nova_connection: NovaConnection, volume_id: str, snapshot_name: str):
+    cinder_connection.connection.volumes.upload_to_image(volume_id, True, snapshot_name, "bare", "qcow2")
+    uuid_snap = None
+    is_active = False
+    timeout = 0
+    while uuid_snap is None:
+        try:
+            uuid_snap = get_snapshot_id_from_glance(glance_connection, snapshot_name)[0]
+        except Exception:
+            timeout += 1
+            if timeout < 5:
+                sleep(2)
+            else:
+                raise
+    while not is_active:
+        try:
+            is_active = check_availability(nova_connection, uuid_snap)
+        except:
+            raise
+        if not is_active:
+            sleep(2)
 
 
 def make_snapshot(nova_connection: NovaConnection, server_name: str, snapshot_name: str):
@@ -41,16 +67,29 @@ def make_snapshot_from_uuid(nova_connection: NovaConnection, server_uuid: str, s
         snapshot_image_uuid = nova_connection.connection.servers.create_image(server_uuid, snapshot_name)
     except exceptions.Conflict:
         raise
-
-    step = {"queued", "saving", "active"}
     is_active = False
     while not is_active:
-        image_info = dict(nova_connection.connection.glance.find_image(snapshot_image_uuid).to_dict())
-        if 'status' in image_info:
-            if not image_info['status'] in step:
-                raise ValueError("Unknown status : " + image_info['status'])
-            if image_info['status'] == "active":
-                is_active = True
-        # Useful for the CPU ?
+        try:
+            is_active = check_availability(nova_connection, snapshot_image_uuid)
+        except:
+            raise
         if not is_active:
             sleep(2)
+
+
+def check_availability(nova_connection: NovaConnection, snapshot_image_uuid: str):
+    step = {"queued", "saving", "active"}
+    print("here")
+    image_info = dict(nova_connection.connection.glance.find_image(snapshot_image_uuid).to_dict())
+    print("image_info", image_info)
+    if 'status' in image_info:
+        print(image_info['status'])
+        if not image_info['status'] in step:
+            raise ValueError("Unknown status : " + image_info['status'])
+        if image_info['status'] == "active":
+            return True
+    return False
+
+
+def make_volume_snapshot(cinder_connection: CinderConnection, volume_id: str, snapname: str):
+    cinder_connection.connection.volume_snapshots.create(volume_id, name=snapname)
