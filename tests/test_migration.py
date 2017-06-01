@@ -12,7 +12,7 @@ def main():
     connection = AuthenticationV3(**creds)
     glance_creds_src = {"region_name": input("Region name at source: "),
                         "version": "2",
-                        "authentication_v3": connection}
+                        "authentication": connection}
     glance_creds_dest = {"authentication": connection,
                          "region_name": input("Region name at destination: "),
                          "version": "2"}
