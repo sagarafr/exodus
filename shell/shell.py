@@ -4,9 +4,7 @@ from datetime import datetime
 from re import search
 from re import fullmatch
 from math import trunc
-from os import environ
-from authentication.authentication import AuthenticationV3
-from authentication.authentication import AuthenticationV2
+from authentication.authentication import *
 from migration.snapshot import make_snapshot
 from migration.migration import migration
 from migration.launch_instance import launch_instance
@@ -18,6 +16,7 @@ from utils.get_from_image import get_container_format
 from utils.get_from_image import get_disk_format
 from connections.connections import ConnectionsVersion
 from connections.connections import Connections
+from utils.get_env_variable import get_os_credentials
 
 
 class Shell(cmd.Cmd):
@@ -287,20 +286,60 @@ class Shell(cmd.Cmd):
         """
         Make an environment connection
         """
-        auth_url = None if "OS_AUTH_URL" not in environ else environ["OS_AUTH_URL"]
-        username = None if "OS_USERNAME" not in environ else environ["OS_USERNAME"]
-        password = None if "OS_PASSWORD" not in environ else environ["OS_PASSWORD"]
-        tenant_id = None if "OS_TENANT_ID" not in environ else environ["OS_TENANT_ID"]
-        version = self._get_version(auth_url)
-        if version is None:
+        auth_url, token, username, password, user_domain_name, tenant_id = get_os_credentials()
+        auth = None
+
+        if auth_url is None and (token is None and (username is None or password is None)):
             return None
-        else:
-            auth = None
-            if version == 2:
-                auth = AuthenticationV2(auth_url, username, password, tenant_id=tenant_id)
-            elif version == 3:
-                auth = AuthenticationV3(auth_url, username, password)
-            if auth is not None:
+
+        try:
+            auth = AuthenticationV3(auth_url=auth_url, token=token)
+            self._add_connection(auth)
+            self._print_auth_token(auth)
+        except Exception as exception_message:
+            print(exception_message)
+            pass
+        if auth is None:
+            try:
+                auth = AuthenticationV3(auth_url=auth_url, username=username,
+                                        password=password, user_domain_name=user_domain_name)
+                self._add_connection(auth)
+                self._print_auth_url(auth)
+            except Exception as exception_message:
+                print(exception_message)
+                pass
+
+        if auth is None:
+            try:
+                auth = AuthenticationV2(auth_url=auth_url, token=token, tenant_id=tenant_id)
+                self._add_connection(auth)
+                self._print_auth_token(auth)
+            except Exception as exception_message:
+                print(exception_message)
+                pass
+        if auth is None:
+            try:
+                auth = AuthenticationV2(auth_url=auth_url, username=username, password=password, tenant_id=tenant_id)
+                self._add_connection(auth)
+                self._print_auth_url(auth)
+            except Exception as exception_message:
+                print(exception_message)
+                pass
+
+    @staticmethod
+    def _print_auth_url(auth: Authentication):
+        if auth is not None:
+            print("You are connected to {} as {}\n".format(auth.auth_url, auth.username))
+
+    @staticmethod
+    def _print_auth_token(auth: Authentication):
+        if auth is not None:
+            print("You are connected to {} with a token\n".format(auth.auth_url))
+
+    def _add_connection(self, auth):
+        if auth is not None:
+            try:
                 self._current_connection = Connections(auth, self._connections_version)
                 self._connections.append(self._current_connection)
-                print("You are connected to {0} as {1}\n".format(auth.auth_url, auth.username))
+            except Exception:
+                raise
