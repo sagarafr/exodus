@@ -16,16 +16,27 @@ class Connection(dict):
         * 'auth_url' / 'username' / 'password' / 'tenant_id' that make an AuthenticationV3 object
         """
         super().__init__(kwargs)
-        if 'authentication' not in self:
-            if 'tenant_id' in self:
-                self._authentication = AuthenticationV2(auth_url=self.auth_url, username=self.username,
-                                                        password=self.password, tenant_id=self.tenant_id)
-            else:
-                self._authentication = AuthenticationV3(auth_url=self.auth_url, username=self.username,
-                                                        password=self.password, user_domain_name=self.user_domain_name)
-        else:
-            self._authentication = self['authentication']
         self._connection = None
+
+        auth = False
+        try:
+            self._authentication = self['authentication']
+            auth = True
+        except KeyError:
+            pass
+        try:
+            self._authentication = AuthenticationV3(**self)
+            auth = True
+        except Exception:
+            pass
+        try:
+            self._authentication = AuthenticationV2(**self)
+            auth = True
+        except Exception:
+            pass
+
+        if not auth:
+            raise ValueError("Can not log in")
 
     @property
     def auth_url(self):

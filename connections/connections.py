@@ -152,6 +152,8 @@ class Connections:
         :param init_function: function that can initialize a connection
         :param var_storage: dict that can contain all connections
         """
+        if regions is None:
+            raise ValueError("Regions can't be None")
         for region in regions:
             credentials = {"region_name": str(region),
                            "version": str(version),
