@@ -25,4 +25,4 @@ def launch_instance(nova_connection: NovaConnection, instance_name: str,
         flavor_uuid = find_flavors(nova_connection, flavor)[0]
     except IndexError as index:
         raise ValueError(flavor + " flavor not found")
-    nova_connection.connection.servers.create(instance_name, image, flavor_uuid, nics=network)
+    return nova_connection.connection.servers.create(instance_name, image, flavor_uuid, nics=network)
