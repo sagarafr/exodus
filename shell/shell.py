@@ -17,6 +17,8 @@ from utils.get_from_image import get_disk_format
 from connections.connections import ConnectionsVersion
 from connections.connections import Connections
 from utils.get_env_variable import get_os_credentials
+from migration_task.migration_task import MigrationTask
+from utils.get_ids import get_server_id_from_nova
 
 
 class Shell(cmd.Cmd):
@@ -130,6 +132,17 @@ class Shell(cmd.Cmd):
                 elif not is_good_flavor(src_user_connection.get_nova_connection(src_region), src_instance_name, flavor):
                     print("The flavor {0} is not to small for {1} instance".format(flavor, src_instance_name))
                 else:
+                    connections = {'src_connection': src_user_connection,
+                                   'dest_connection': dest_user_connection}
+                    migration_task = MigrationTask(**connections)
+                    server_id = get_server_id_from_nova(src_user_connection.get_nova_connection(src_region), src_instance_name)[0]
+                    print("prepare begin")
+                    migration_task.prepare_migration(server_id, src_region)
+                    print("prepare end")
+                    print("migration to begin")
+                    migration_task.migration_to(dest_region)
+                    print("migration to end")
+                    """
                     print("make snap")
                     make_snapshot(src_user_connection.get_nova_connection(src_region), src_instance_name, snapshot_name)
                     print("snap done")
@@ -149,6 +162,7 @@ class Shell(cmd.Cmd):
                                     dest_instance_name, snapshot_name, flavor,
                                     get_ovh_default_nics(dest_user_connection.get_neutron_connection(dest_region)))
                     print("launch done")
+                    """
             except Exception as error:
                 print(error)
         else:
