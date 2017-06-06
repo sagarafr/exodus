@@ -20,6 +20,13 @@ class ResourceManager:
         return self._storage_resource
 
     @storage_resource.setter
-    def storage_resource(self, value: Resource):
+    def storage_resource(self, value: Resource = Resource()):
         self._storage_resource.append(value)
         self._storage_resource[-1].resource_type = ResourceType.Storage
+
+    def reset_resource(self):
+        self._instance_resource = Resource(resource_type=ResourceType.Instance)
+        self._storage_resource = []
+
+    def __str__(self):
+        return '\n\n'.join([self._instance_resource.__str__()] + [resource.__str__() for resource in self.storage_resource])

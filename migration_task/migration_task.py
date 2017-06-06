@@ -16,6 +16,8 @@ from utils.get_ids import get_flavor_id
 from utils.find_flavors import find_flavor_name
 from time import sleep
 
+from migration_task.resource import Resource
+
 
 class MigrationTask:
     def __init__(self, **kwargs):
@@ -210,3 +212,21 @@ class MigrationTask:
                     self._hard_disk_created.pop(cpt_hard_disk)
                     break
             sleep(2)
+
+
+class NewMigrationTask:
+    def __init__(self, **kwargs):
+        try:
+            self._source_connection = kwargs['source_connection']
+            self._destination_connection = kwargs['destination_connection']
+        except:
+            raise
+        self._resource = None
+        self._region_name_source = None
+        self._region_name_destination = None
+
+    def prepare_migration(self, resource: Resource, region_name_source: str, region_name_destination: str):
+        self._resource = resource
+        self._region_name_source = region_name_source
+        self._region_name_destination = region_name_destination
+
