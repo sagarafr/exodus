@@ -57,10 +57,4 @@ class MigrationManager:
     def _retrieve_information(self):
         nova_connection = self.source_connection.get_nova_connection(self._source_region_name)
         cinder_connection = self.source_connection.get_cinder_connection(self._source_region_name)
-        instance_resource = self.resource_manager.instance_resource
-        yield from asyncio.ensure_future(instance_resource.init_resource(nova_connection, cinder_connection, self._instance_id))
-        for storage_device in nova_connection.connection.volumes.get_server_volumes(self._instance_id):
-            self.resource_manager.storage_resource = Resource()
-            resource = self.resource_manager.storage_resource[-1]
-            id_storage = storage_device.to_dict()['id']
-            yield from asyncio.ensure_future(resource.init_resource(nova_connection, cinder_connection, id_storage))
+        yield from self.resource_manager.retrieve_information(nova_connection, cinder_connection, self.instance_id)
