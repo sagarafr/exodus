@@ -17,6 +17,15 @@ def find_flavors(nova_connection: NovaConnection, flavor_name: str):
     return flavor_list
 
 
+def find_flavor_name(nova_connection: NovaConnection, flavor_id: str):
+    flavor_list = []
+    for flavor in nova_connection.connection.flavors.list():
+        flavor_info = dict(flavor.to_dict())
+        if 'id' in flavor_info and 'name' in flavor_info and flavor_info['id'] == flavor_id:
+            flavor_list.append(flavor_info['name'])
+    return flavor_list
+
+
 def have_instance(nova_connection: NovaConnection, instance_name: str):
     for server in nova_connection.connection.servers.list():
         server_info = dict(server.to_dict())

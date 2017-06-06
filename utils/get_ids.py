@@ -103,3 +103,13 @@ def get_ovh_default_nics(neutron_connection: NeutronConnection):
     :return: list correctly formatted for the network (used inside launch_connection function) 
     """
     return get_nics(neutron_connection, 'Ext-Net')
+
+
+def get_flavor_id(nova_connection: NovaConnection, instance_name: str):
+    instance_id_list = []
+    for image in nova_connection.connection.servers.list():
+        image_info = dict(image.to_dict())
+        if 'flavor' in image_info and 'id' in image_info['flavor'] and 'name' in image_info and image_info['name'] == instance_name:
+            instance_id_list.append(image_info['flavor']['id'])
+
+    return instance_id_list
