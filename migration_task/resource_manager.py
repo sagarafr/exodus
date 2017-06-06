@@ -30,12 +30,9 @@ class ResourceManager:
         self._instance_resource = Resource(resource_type=ResourceType.Instance)
         self._storage_resource = []
 
-    def detach_all_volume(self):
-        loop = asyncio.get_event_loop()
-        try:
-            loop.run_until_complete(self._detach_volumes())
-        except:
-            raise
+    @asyncio.coroutine
+    def detach_all_volume(self, nova_connection: NovaConnection):
+        asyncio.ensure_future(self._detach_all_volumes(nova_connection))
 
     @asyncio.coroutine
     def retrieve_information(self, nova_connection: NovaConnection, cinder_connection: CinderConnection, instance_id: str):
@@ -47,11 +44,37 @@ class ResourceManager:
             self.storage_resource = resource
 
     @asyncio.coroutine
-    def _detach_volumes(self):
-        """
-        for storage_device
-        yield from asyncio.ensure_future()
-        """
+    def migration(self, nova_connection_source: NovaConnection, glance_connection_source: GlanceConnection,
+                  glance_connection_destination: GlanceConnection, nova_connection_destination: NovaConnection,
+                  neutron_connection_destination: NeutronConnection, cinder_connection_source: CinderConnection,
+                  cinder_connection_destination: CinderConnection):
+        yield from asyncio.ensure_future(self.instance_resource.migration(nova_connection_source,
+                                                                          glance_connection_source,
+                                                                          glance_connection_destination,
+                                                                          nova_connection_destination,
+                                                                          neutron_connection_destination,
+                                                                          cinder_connection_source,
+                                                                          cinder_connection_destination))
+        for storage_device in self.storage_resource:
+            yield from asyncio.ensure_future(storage_device.migration(nova_connection_source,
+                                                                      glance_connection_source,
+                                                                      glance_connection_destination,
+                                                                      nova_connection_destination,
+                                                                      neutron_connection_destination,
+                                                                      cinder_connection_source,
+                                                                      cinder_connection_destination))
+
+    @asyncio.coroutine
+    def _detach_all_volumes(self, nova_connection: NovaConnection):
+        for storage_device in self.storage_resource:
+            yield from asyncio.ensure_future(self._detach_a_volume(nova_connection, storage_device['id']))
+
+    @asyncio.coroutine
+    def _detach_a_volume(self, nova_connection: NovaConnection, volume_id: str):
+        try:
+            nova_connection.connection.volumes.delete_server_volume(self.instance_resource.resource_information['id'], volume_id)
+        except:
+            raise
 
     def __str__(self):
         return '\n\n'.join([self._instance_resource.__str__()] + [resource.__str__() for resource in self.storage_resource])

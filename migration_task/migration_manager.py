@@ -1,7 +1,9 @@
 import asyncio
+from time import sleep
 
 from connections.connections import Connections
 from migration_task.resource_manager import ResourceManager
+from utils.attach_a_volume import attach_a_volume
 from migration_task.resource import *
 
 
@@ -28,7 +30,7 @@ class MigrationManager:
 
     @property
     def destination_connection(self) -> Connections:
-        return self.destination_connection
+        return self._destination_connection
 
     @property
     def source_region_name(self) -> str:
@@ -50,6 +52,52 @@ class MigrationManager:
         loop = asyncio.get_event_loop()
         try:
             loop.run_until_complete(self._retrieve_information())
+        except:
+            raise
+
+    def migration(self):
+        loop = asyncio.get_event_loop()
+        try:
+            nova_connection_source = self.source_connection.get_nova_connection(self.source_region_name)
+            glance_connection_source = self.source_connection.get_glance_connection(self.source_region_name)
+            cinder_connection_source = self.source_connection.get_cinder_connection(self.source_region_name)
+            glance_connection_destination = self.destination_connection.get_glance_connection(self.destination_region_name)
+            nova_connection_destination = self.destination_connection.get_nova_connection(self.destination_region_name)
+            neutron_connection_destination = self.destination_connection.get_neutron_connection(self.destination_region_name)
+            cinder_connection_destination = self.destination_connection.get_cinder_connection(self.destination_region_name)
+            loop.run_until_complete(self.resource_manager.migration(nova_connection_source, glance_connection_source,
+                                                                    glance_connection_destination,
+                                                                    nova_connection_destination,
+                                                                    neutron_connection_destination,
+                                                                    cinder_connection_source,
+                                                                    cinder_connection_destination))
+        except:
+            raise
+        status = nova_connection_destination.connection.servers.get(self.resource_manager.instance_resource.resource_created['id']).to_dict()['status']
+        while status != 'ACTIVE':
+            status = nova_connection_destination.connection.servers.get(
+                self.resource_manager.instance_resource.resource_created['id']).to_dict()['status']
+            print("[{}]".format(status))
+            if status != 'ACTIVE':
+                sleep(2)
+        disk_device_attached = False
+        while not disk_device_attached:
+            disk_device_attached = True
+            for storage_resource in self.resource_manager.storage_resource:
+
+                disk_information = cinder_connection_destination.connection.volumes.get(storage_resource.resource_created['id']).to_dict()
+                print(disk_information)
+                if disk_information['status'] == 'available':
+                    attach_a_volume(nova_connection_destination, self.resource_manager.instance_resource.resource_created['id'], disk_information['id'])
+                elif disk_information['status'] != 'in-use':
+                    disk_device_attached = False
+            sleep(2)
+
+    def detach_all_volumes(self, region_name: str):
+        nova_connection = self.source_connection.get_nova_connection(region_name)
+        loop = asyncio.get_event_loop()
+        try:
+            loop.run_until_complete(self.resource_manager.detach_all_volume(nova_connection))
         except:
             raise
 
