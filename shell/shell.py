@@ -1,23 +1,16 @@
 import cmd
 from json import dumps
-from datetime import datetime
 from re import search
 from re import fullmatch
 from math import trunc
 from authentication.authentication import *
-from migration.snapshot import make_snapshot
-from migration.migration import migration
-from migration.launch_instance import launch_instance
 from utils.ask_credential import ask_credential
 from utils.find_flavors import is_good_flavor
 from utils.find_flavors import have_instance
-from utils.get_ids import get_ovh_default_nics
-from utils.get_from_image import get_container_format
-from utils.get_from_image import get_disk_format
 from connections.connections import ConnectionsVersion
 from connections.connections import Connections
 from utils.get_env_variable import get_os_credentials
-from migration_task.migration_task import MigrationTask
+from migration_task.migration_manager import MigrationManager
 from utils.get_ids import get_server_id_from_nova
 
 
@@ -115,7 +108,6 @@ class Shell(cmd.Cmd):
             print("You don't have a valid connection at destination.")
             return
         if len(args) == 7 or len(args) == 5:
-            snapshot_name = str(src_instance_name + str(datetime.now().isoformat()))
             try:
                 if src_region not in src_user_connection.nova:
                     print("{} is not in Nova region module".format(src_region))
@@ -132,37 +124,11 @@ class Shell(cmd.Cmd):
                 elif not is_good_flavor(src_user_connection.get_nova_connection(src_region), src_instance_name, flavor):
                     print("The flavor {0} is not to small for {1} instance".format(flavor, src_instance_name))
                 else:
-                    connections = {'src_connection': src_user_connection,
-                                   'dest_connection': dest_user_connection}
-                    migration_task = MigrationTask(**connections)
+                    migration_manager = MigrationManager(source_connection=src_user_connection,
+                                                         destination_connection=dest_user_connection)
                     server_id = get_server_id_from_nova(src_user_connection.get_nova_connection(src_region), src_instance_name)[0]
-                    print("prepare begin")
-                    migration_task.prepare_migration(server_id, src_region)
-                    print("prepare end")
-                    print("migration to begin")
-                    migration_task.migration_to(dest_region)
-                    print("migration to end")
-                    """
-                    print("make snap")
-                    make_snapshot(src_user_connection.get_nova_connection(src_region), src_instance_name, snapshot_name)
-                    print("snap done")
-                    print("make migration")
-                    # TODO make the default disk_format and container_format generic
-                    disk_format = get_disk_format(src_user_connection.get_glance_connection(src_region), snapshot_name)
-                    disk_format = "qcow2" if len(disk_format) == 0 else disk_format[0]
-                    container_format = get_container_format(src_user_connection.get_glance_connection(src_region), snapshot_name)
-                    container_format = "bare" if len(container_format) == 0 else container_format[0]
-                    migration(src_user_connection.get_glance_connection(src_region),
-                              dest_user_connection.get_glance_connection(dest_region),
-                              snapshot_name, snapshot_name, disk_format, container_format)
-                    print("migration done")
-                    print("make launch")
-                    # TODO make some modification : remove get_ovh_default_nics and send the origin nics
-                    launch_instance(dest_user_connection.get_nova_connection(dest_region),
-                                    dest_instance_name, snapshot_name, flavor,
-                                    get_ovh_default_nics(dest_user_connection.get_neutron_connection(dest_region)))
-                    print("launch done")
-                    """
+                    migration_manager.prepare_migration(server_id, src_region, dest_region)
+                    migration_manager.migration()
             except Exception as error:
                 print(error)
         else:
