@@ -73,18 +73,19 @@ class Resource:
         except:
             raise
 
-    @asyncio.coroutine
     def migration(self, nova_connection_source: NovaConnection, glance_connection_source: GlanceConnection,
                   glance_connection_destination: GlanceConnection, nova_connection_destination: NovaConnection,
                   neutron_connection_destination: NeutronConnection, cinder_connection_source: CinderConnection,
                   cinder_connection_destination: CinderConnection):
         try:
             if self.resource_type is ResourceType.Instance:
-                self._instance_migration(nova_connection_source, glance_connection_source, glance_connection_destination,
-                                         nova_connection_destination, neutron_connection_destination)
+                self._instance_migration(nova_connection_source, glance_connection_source,
+                                         glance_connection_destination, nova_connection_destination,
+                                         neutron_connection_destination)
             elif self.resource_type is ResourceType.Storage:
-                self._storage_migration(cinder_connection_source, glance_connection_source, nova_connection_source,
-                                        glance_connection_destination, cinder_connection_destination)
+                self._storage_migration(cinder_connection_source, glance_connection_source,
+                                        nova_connection_source, glance_connection_destination,
+                                        cinder_connection_destination)
         except:
             raise
 
@@ -109,21 +110,25 @@ class Resource:
             pass
         except:
             raise
-        # Make a snapshot
-        # TODO add try catch here
+        print("begin snapshot {} with id {}".format(self.resource_type, self.resource_information['id']))
         self.snapshot_name = self.resource_information['id'] + datetime.now().isoformat() + '_instance'
         make_snapshot_from_uuid(nova_connection_source, self.resource_information['id'], self._snapshot_name)
+        print("end snapshot {} with id {}".format(self.resource_type, self.resource_information['id']))
 
-        # Migrate this snapshot into an other region
         try:
-            migration(glance_connection_source, glance_connection_destination, self.snapshot_name, self.snapshot_name, disk_format, container_format)
+            print("begin migration {} with id {}".format(self.resource_type, self.resource_information['id']))
+            migration(glance_connection_source, glance_connection_destination, self.snapshot_name,
+                      self.snapshot_name, disk_format, container_format)
+            print("end migration {} with id {}".format(self.resource_type, self.resource_information['id']))
         except:
             raise
-        # Launch instance
+
+        print("begin instance {} with id {}".format(self.resource_type, self.resource_information['id']))
         tmp_resource = launch_instance(nova_connection_destination, self.resource_information['name'],
                                        self.snapshot_name, flavor_name,
                                        get_ovh_default_nics(neutron_connection_destination))
         self.resource_created = tmp_resource.to_dict()
+        print("end instance {} with id {}".format(self.resource_type, self.resource_information['id']))
 
     def _storage_migration(self, cinder_connection_source: CinderConnection, glance_connection_source: GlanceConnection,
                            nova_connection_source: NovaConnection, glance_connection_destination: GlanceConnection,
@@ -132,18 +137,23 @@ class Resource:
             size = self.resource_information['size']
         except:
             raise
-        # Make a snapshot
-        # TODO add try catch here
+        print("begin snapshot {} with id {}".format(self.resource_type, self.resource_information['id']))
         self.snapshot_name = self.resource_information['id'] + datetime.now().isoformat() + '_volume'
         make_hard_disk_snapshot(cinder_connection_source, glance_connection_source, nova_connection_source,
                                 self.resource_information['id'], self.snapshot_name)
-        # Migrate this snapshot into an other region
+        print("end snapshot {} with id {}".format(self.resource_type, self.resource_information['id']))
+
         try:
+            print("begin migration {} with id {}".format(self.resource_type, self.resource_information['id']))
             migration(glance_connection_source, glance_connection_destination, self.snapshot_name, self.snapshot_name)
+            print("end migration {} with id {}".format(self.resource_type, self.resource_information['id']))
         except:
             raise
+
+        print("begin instance {} with id {}".format(self.resource_type, self.resource_information['id']))
         tm_resource = cinder_connection_destination.connection.volumes.create(size, imageRef=self.snapshot_name)
         self.resource_created = tm_resource.to_dict()
+        print("end instance {} with id {}".format(self.resource_type, self.resource_information['id']))
 
     def __str__(self):
         return "resource_information: " + dumps(self.resource_information, indent=4) + '\n' + \

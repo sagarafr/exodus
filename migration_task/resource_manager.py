@@ -1,5 +1,5 @@
 import asyncio
-
+import concurrent.futures
 from migration_task.resource import *
 
 
@@ -43,26 +43,21 @@ class ResourceManager:
             yield from asyncio.ensure_future(resource.init_resource(nova_connection, cinder_connection, id_storage))
             self.storage_resource = resource
 
-    @asyncio.coroutine
     def migration(self, nova_connection_source: NovaConnection, glance_connection_source: GlanceConnection,
                   glance_connection_destination: GlanceConnection, nova_connection_destination: NovaConnection,
                   neutron_connection_destination: NeutronConnection, cinder_connection_source: CinderConnection,
                   cinder_connection_destination: CinderConnection):
-        yield from asyncio.ensure_future(self.instance_resource.migration(nova_connection_source,
-                                                                          glance_connection_source,
-                                                                          glance_connection_destination,
-                                                                          nova_connection_destination,
-                                                                          neutron_connection_destination,
-                                                                          cinder_connection_source,
-                                                                          cinder_connection_destination))
-        for storage_device in self.storage_resource:
-            yield from asyncio.ensure_future(storage_device.migration(nova_connection_source,
-                                                                      glance_connection_source,
-                                                                      glance_connection_destination,
-                                                                      nova_connection_destination,
-                                                                      neutron_connection_destination,
-                                                                      cinder_connection_source,
-                                                                      cinder_connection_destination))
+        # TODO change the max_workers
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as thread_pool:
+            thread_pool.submit(self.instance_resource.migration, nova_connection_source, glance_connection_source,
+                               glance_connection_destination, nova_connection_destination,
+                               neutron_connection_destination, cinder_connection_source,
+                               cinder_connection_destination)
+            for storage_device in self.storage_resource:
+                thread_pool.submit(storage_device.migration, nova_connection_source, glance_connection_source,
+                                   glance_connection_destination, nova_connection_destination,
+                                   neutron_connection_destination, cinder_connection_source,
+                                   cinder_connection_destination)
 
     @asyncio.coroutine
     def _detach_all_volumes(self, nova_connection: NovaConnection):
