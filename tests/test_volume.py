@@ -77,6 +77,6 @@ def test_volume():
 
 
 if __name__ == '__main__':
-    migrate()
-    # info_volume()
+    info_volume()
+    # migrate()
     # test_volume()

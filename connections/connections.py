@@ -85,6 +85,11 @@ class Connections:
 
     @property
     def catalog(self):
+        """
+        Catalog property
+
+        :return: dict content the Authentication catalog 
+        """
         return self.authentication.catalog
 
     @property

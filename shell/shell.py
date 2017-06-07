@@ -14,6 +14,7 @@ from migration_task.migration_manager import MigrationManager
 from utils.get_ids import get_server_id_from_nova
 
 
+# TODO make a difference between the token connection and username/password connection
 class Shell(cmd.Cmd):
     """
     A basic exodus shell client. The commands available are :

@@ -10,7 +10,7 @@ class Authentication:
     """
     def __init__(self, **kwargs):
         """
-        Authentication method. This check the environment but take priority from arguments
+        Authentication method.
 
         :param auth_url: str Authentication url 
         :param username: str Username
@@ -74,6 +74,14 @@ class Authentication:
         raise NotImplementedError("Connection by password method must be implemented")
 
     def connection_token(self, **kwargs):
+        """
+        Make a connection with a token
+        
+        :param auth_url: str Authentication url
+        :param token: str Authentication token
+        :param tenant_id: str Tenant id
+        :raise: Not ImplementedError 
+        """
         raise NotImplementedError("Connection by token method must be implemented")
 
     @property
@@ -306,6 +314,11 @@ class Authentication:
 
     @property
     def tenant_id(self):
+        """
+        Tenant id property
+
+        :return: str content the tenant id 
+        """
         return self._tenant_id
 
     @property
@@ -386,6 +399,12 @@ class AuthenticationV3(Authentication):
         self._init_session_access_catalog()
 
     def connection_token(self, **kwargs):
+        """
+        Make a connection with a token
+        
+        :param auth_url: str Authentication url
+        :param token: str Authentication token
+        """
         self._authentication = v3.Token(auth_url=kwargs['auth_url'], token=kwargs['token'])
         self._init_session_access_catalog()
 
@@ -445,6 +464,13 @@ class AuthenticationV2(Authentication):
         self._init_session_access_catalog()
 
     def connection_token(self, **kwargs):
+        """
+        Make a connection with a token
+        
+        :param auth_url: str Authentication url
+        :param token: str Authentication token
+        :param tenant_id: str Tenant id
+        """
         self._authentication = v2.Token(auth_url=kwargs['auth_url'], token=kwargs['token'],
                                         tenant_id=kwargs['tenant_id'])
         self._init_session_access_catalog()
