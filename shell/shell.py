@@ -14,7 +14,6 @@ from migration_task.migration_manager import MigrationManager
 from utils.get_ids import get_server_id_from_nova
 
 
-# TODO make a difference between the token connection and username/password connection
 class Shell(cmd.Cmd):
     """
     A basic exodus shell client. The commands available are :
@@ -73,11 +72,13 @@ class Shell(cmd.Cmd):
         'Change the current connection into an other.\nUse: change_connection username'
         args = args.split(' ')
         if len(args) == 1:
-            connection = self._find_connection(args[0])
+            connection = self._find_connection_by_username(args[0])
             if connection is not None:
                 self._current_connection = connection
             else:
-                print("The username: " + args[0] + " is not found")
+                connection = self._find_connection_by_token(args[0])
+                if connection is None:
+                    print("The username or token " + args[0] + " is not found")
         else:
             print("Bad command")
 
@@ -96,8 +97,8 @@ class Shell(cmd.Cmd):
         src_region, dest_region, src_instance_name, dest_instance_name, flavor = None, None, None, None, None
         if len(args) == 7:
             src_user, src_region, dest_user, dest_region, src_instance_name, dest_instance_name, flavor = map(str, args)
-            src_user_connection = self._find_connection(src_user)
-            dest_user_connection = self._find_connection(dest_user)
+            src_user_connection = self._find_connection_by_username(src_user)
+            dest_user_connection = self._find_connection_by_username(dest_user)
         elif len(args) == 5:
             src_region, dest_region, src_instance_name, dest_instance_name, flavor = map(str, args)
             src_user_connection = self._current_connection
@@ -232,7 +233,7 @@ class Shell(cmd.Cmd):
                 return True
         return False
 
-    def _find_connection(self, username: str):
+    def _find_connection_by_username(self, username: str):
         """
         Find a connection with username in parameter
         
@@ -241,6 +242,18 @@ class Shell(cmd.Cmd):
         """
         for connection in self._connections:
             if connection.authentication.username == username:
+                return connection
+        return None
+
+    def _find_connection_by_token(self, token: str):
+        """
+        Find a connection with token in parameter
+
+        :param token: Token of a project 
+        :return: None or a connection 
+        """
+        for connection in self._connections:
+            if connection.authentication.token == token:
                 return connection
         return None
 
