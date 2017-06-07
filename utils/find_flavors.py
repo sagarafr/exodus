@@ -1,3 +1,4 @@
+import asyncio
 from connections.nova_connection import NovaConnection
 
 
@@ -18,6 +19,16 @@ def find_flavors(nova_connection: NovaConnection, flavor_name: str):
 
 
 def find_flavor_name(nova_connection: NovaConnection, flavor_id: str):
+    flavor_list = []
+    for flavor in nova_connection.connection.flavors.list():
+        flavor_info = dict(flavor.to_dict())
+        if 'id' in flavor_info and 'name' in flavor_info and flavor_info['id'] == flavor_id:
+            flavor_list.append(flavor_info['name'])
+    return flavor_list
+
+
+@asyncio.coroutine
+def find_flavor_name_asyncio(nova_connection: NovaConnection, flavor_id: str):
     flavor_list = []
     for flavor in nova_connection.connection.flavors.list():
         flavor_info = dict(flavor.to_dict())

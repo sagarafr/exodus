@@ -1,3 +1,4 @@
+import asyncio
 from keystoneauth1.identity import v3
 from keystoneauth1.session import Session
 from connections.nova_connection import NovaConnection
@@ -22,6 +23,23 @@ def get_server_id_from_nova(nova_connection: NovaConnection, server_name: str):
 
 
 def get_snapshot_id_from_glance(glance_connection: GlanceConnection, snapshot_name: str):
+    """
+    Get the snapshot id of snapshot_name from glance_connection region
+
+    :param glance_connection: GlanceConnection object use to make the request 
+    :param snapshot_name: str snapshot_name to find
+    :return: list of snapshot id of snapshot_name 
+    """
+    snapshot_id = []
+    for snapshot in glance_connection.connection.images.list():
+        snapshot_info = dict(snapshot)
+        if 'name' in snapshot_info and 'id' in snapshot_info and snapshot_info['name'] == snapshot_name:
+            snapshot_id.append(snapshot_info['id'])
+    return snapshot_id
+
+
+@asyncio.coroutine
+def get_snapshot_id_from_glance_asyncio(glance_connection: GlanceConnection, snapshot_name: str):
     """
     Get the snapshot id of snapshot_name from glance_connection region
 
