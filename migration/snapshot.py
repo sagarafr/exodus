@@ -95,7 +95,6 @@ def check_availability(nova_connection: NovaConnection, snapshot_image_uuid: str
     step = {"queued", "saving", "active"}
     image_info = dict(nova_connection.connection.glance.find_image(snapshot_image_uuid).to_dict())
     if 'status' in image_info:
-        print(image_info['status'])
         if not image_info['status'] in step:
             raise ValueError("Unknown status : " + image_info['status'])
         if image_info['status'] == "active":
