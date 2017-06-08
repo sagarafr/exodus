@@ -365,7 +365,11 @@ class Authentication:
         return cache_id_elements[key] if key in cache_id_elements else None
 
     def __str__(self):
-        return "Auth url: " + str(self.auth_url) + " | Username: " + str(self.username)
+        if self.username is not None and self.username != "":
+            return "You are connected to {} as {}".format(self.auth_url, self.username)
+        if self.token is not None and self.token != "":
+            return "You are connected to {} with the token {}".format(self.auth_url, self.token)
+        return ""
 
 
 class AuthenticationV3(Authentication):
