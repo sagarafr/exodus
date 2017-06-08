@@ -5,7 +5,6 @@ from re import fullmatch
 from math import trunc
 from authentication.authentication import *
 from utils.ask_credential import ask_credential
-from utils.find_flavors import is_good_flavor
 from utils.find_flavors import have_instance
 from connections.connections import ConnectionsVersion
 from connections.connections import Connections
@@ -33,8 +32,8 @@ class Shell(cmd.Cmd):
     def __init__(self):
         super().__init__()
         self._connections_version = ConnectionsVersion()
-        self._connections = list()
-        self._alias = dict()
+        # TODO make here a dict to store connection with 2 keys: token and password
+        self._connections = {"token": [], "password": []}
         self._current_connection = None
         self._url_validation = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
         self._env_connection()
@@ -56,29 +55,41 @@ class Shell(cmd.Cmd):
 
     def do_list_connection(self, arg):
         'List all connection'
-        print("Connections: ")
-        print('\n'.join(str(connection) for connection in self._connections))
+        if len(self._connections["token"]) == 0 and len(self._connections["password"]) == 0:
+            print("Have no current connection")
+        else:
+            if len(self._connections["token"]) != 0:
+                print("Token connections: ")
+                connections = self._connections["token"]
+                print('\n'.join([str(index_connection + 1) + ': ' + str(connections[index_connection]) for index_connection in range(0, len(connections))]))
+            if len(self._connections["password"]) != 0:
+                print("Password connections: ")
+                connections = self._connections["password"]
+                print('\n'.join([str(index_connection + 1) + ': ' + str(connections[index_connection]) for index_connection in range(0, len(connections))]))
 
     def do_connection(self, arg):
         'Make a connection'
-        print("Connection\n")
-        authentication = self._init_auth()
-        if authentication is not None:
-            self._current_connection = Connections(authentication, self._connections_version)
-            self._connections.append(self._current_connection)
-            print("You are connected to {0} as {1}\n".format(authentication.auth_url, authentication.username))
+        print("Connection")
+        authentication, method = self._init_auth()
+        if authentication is not None and method is not None:
+            self._add_connection(authentication, method)
+            print(authentication)
 
     def do_change_connection(self, args):
-        'Change the current connection into an other.\nUse: change_connection username'
-        args = args.split(' ')
-        if len(args) == 1:
-            connection = self._find_connection_by_username(args[0])
-            if connection is not None:
-                self._current_connection = connection
+        'Change the current connection into an other.\nUse: change_connection url username or url token'
+        args = self._cleaning_args(args)
+        if len(args) == 2:
+            url, data = args
+            connections = self._find_connection(url, data)
+            if len(connections) == 0:
+                print("Don't find the url and username or url and token data")
+            elif len(connections) == 1:
+                self._current_connection = connections[0]
+                print("Current connection changed")
             else:
-                connection = self._find_connection_by_token(args[0])
-                if connection is None:
-                    print("The username or token " + args[0] + " is not found")
+                index_connection = self._choose_connection_in_list(connections)
+                self._current_connection = connections[index_connection]
+                print("Current connection changed")
         else:
             print("Bad command")
 
@@ -91,26 +102,49 @@ class Shell(cmd.Cmd):
 
     # TODO add the possibility to choose the network flavor or the id_instance or container_format or disk_format ?
     def do_migration(self, args):
-        'Make a migration between 2 project.\nUse: migration [src_user] src_region [dest_user] dest_region src_instance_name dest_instance_name flavor'
-        args = [arg.strip() for arg in args.split(' ') if arg != '']
+        'Make a migration between 2 project.\nUse: migration [auth_url src_user or auth_url src_token] src_region [auth_url dest_user or auth_url dest_token] dest_region src_instance_name'
+        args = self._cleaning_args(args)
         src_user_connection, dest_user_connection = None, None
-        src_region, dest_region, src_instance_name, dest_instance_name, flavor = None, None, None, None, None
+        src_region, dest_region, src_instance_name = None, None, None
+
         if len(args) == 7:
-            src_user, src_region, dest_user, dest_region, src_instance_name, dest_instance_name, flavor = map(str, args)
-            src_user_connection = self._find_connection_by_username(src_user)
-            dest_user_connection = self._find_connection_by_username(dest_user)
-        elif len(args) == 5:
-            src_region, dest_region, src_instance_name, dest_instance_name, flavor = map(str, args)
+            auth_url_src, src_user, src_region, auth_url_dest, dest_user, dest_region, src_instance_name = map(str, args)
+            src_user_connection = self._find_connection(auth_url_src, src_user)
+            dest_user_connection = self._find_connection(auth_url_dest, dest_user)
+        elif len(args) == 3:
+            src_region, dest_region, src_instance_name = map(str, args)
             src_user_connection = self._current_connection
             dest_user_connection = self._current_connection
+        else:
+            print("Usage error")
+            return
+
         if src_user_connection is None:
             print("You don't have a valid connection at source.")
             return
         if dest_user_connection is None:
             print("You don't have a valid connection at destination.")
             return
-        if len(args) == 7 or len(args) == 5:
+
+        if len(args) == 7 or len(args) == 3:
             try:
+                if type(src_user_connection) is list:
+                    if len(src_user_connection) == 0:
+                        print("You don't have a valid connection at source.")
+                        return
+                    elif len(src_user_connection) == 1:
+                        src_user_connection = src_user_connection[0]
+                    else:
+                        src_user_connection = src_user_connection[self._choose_connection_in_list(src_user_connection)]
+                if type(dest_user_connection) is list:
+                    if len(dest_user_connection) == 0:
+                        print("You don't have a valid connection at destination.")
+                        return
+                    elif len(dest_user_connection) == 1:
+                        dest_user_connection = dest_user_connection[0]
+                    else:
+                        dest_user_connection = dest_user_connection[self._choose_connection_in_list(dest_user_connection)]
+
                 if src_region not in src_user_connection.nova:
                     print("{} is not in Nova region module".format(src_region))
                 elif dest_region not in dest_user_connection.nova:
@@ -123,8 +157,6 @@ class Shell(cmd.Cmd):
                     print("{} is not in Neutron region module".format(dest_region))
                 elif not have_instance(src_user_connection.get_nova_connection(src_region), src_instance_name):
                     print("The {0} instance is not in {1} Nova region module".format(src_instance_name, src_region))
-                elif not is_good_flavor(src_user_connection.get_nova_connection(src_region), src_instance_name, flavor):
-                    print("The flavor {0} is not to small for {1} instance".format(flavor, src_instance_name))
                 else:
                     migration_manager = MigrationManager(source_connection=src_user_connection,
                                                          destination_connection=dest_user_connection)
@@ -133,8 +165,6 @@ class Shell(cmd.Cmd):
                     migration_manager.migration()
             except Exception as error:
                 print(error)
-        else:
-            print("Usage error")
 
     def do_list_flavor(self, args):
         'List all flavor. Can be pass a regions name in parameter'
@@ -179,9 +209,49 @@ class Shell(cmd.Cmd):
         """
         Initialize a connection. If a connection exist already doesnt create a new connection
         """
-        is_auth = False
         authentication = None
-        while not is_auth:
+        connection_method = self._ask_connection_method()
+        if connection_method == "token":
+            authentication = self._init_auth_token()
+        elif connection_method == "password":
+            authentication = self._init_auth_password()
+        return authentication, connection_method
+
+    def _init_auth_token(self):
+        authentication = None
+        while authentication is None:
+            try:
+                auth_url = ask_credential([(False, "Auth url: ")])[0]
+                if fullmatch(self._url_validation, auth_url) is None:
+                    print("Auth url is not a good url")
+                    continue
+
+                version = self._get_version(auth_url)
+                if version is None or not 2 <= version <= 3:
+                    print("Unknown authentication version")
+                    continue
+
+                token = ask_credential([(False, "Token: ")])[0]
+                if self._connection_exist(auth_url, token):
+                    print("Already token to {0} as {1}".format(auth_url, token))
+                    return None
+
+                tenant_id = None
+                if version == 2:
+                    tenant_id = ask_credential([(False, "Tenant id: ")])[0]
+                authentication, method = self._try_to_make_an_authentication(auth_url=auth_url, token=token, tenant_id=tenant_id, print_error=True)
+
+            except TypeError as type_error:
+                print(type_error)
+                continue
+            except Exception as exception_error:
+                print(exception_error)
+                continue
+        return authentication
+
+    def _init_auth_password(self):
+        authentication = None
+        while authentication is None:
             try:
                 auth_url = ask_credential([(False, "Auth url: ")])[0]
                 if fullmatch(self._url_validation, auth_url) is None:
@@ -202,60 +272,133 @@ class Shell(cmd.Cmd):
                 user_domain_name = tmp if tmp != '' else "default"
 
                 password = ask_credential([(True, None)])[0]
+                tenant_id = None
 
-                authentication = None
-                if version == 3:
-                    authentication = AuthenticationV3(auth_url=auth_url, username=username,
-                                                      user_domain_name=user_domain_name, password=password)
-                elif version == 2:
+                if version == 2:
                     tenant_id = ask_credential([(False, "Tenant id: ")])[0]
-                    authentication = AuthenticationV2(auth_url=auth_url, username=username,
-                                                      password=password, tenant_id=tenant_id)
+                authentication, method = self._try_to_make_an_authentication(auth_url=auth_url, username=username,
+                                                                             user_domain_name=user_domain_name, password=password,
+                                                                             tenant_id=tenant_id, print_error=True)
+
             except TypeError as type_error:
                 print(type_error)
                 continue
             except Exception as exception_error:
                 print(exception_error)
-                print("Connection failed. Try again")
                 continue
-            is_auth = True
         return authentication
 
-    def _connection_exist(self, auth_url: str, username: str):
+    def _connection_exist(self, auth_url: str, data: str):
         """
         Check if a connection exists already
 
         :param auth_url: Authentication url with version 3 
-        :param username: Username of the project
+        :param data: Username of the project
         """
-        for connection in self._connections:
-            if connection.authentication.auth_url == auth_url and connection.authentication.username == username:
-                return True
-        return False
+        return len(self._find_connection(auth_url, data)) != 0
 
-    def _find_connection_by_username(self, username: str):
+    def _find_connection(self, auth_url: str, data: str):
+        connection = self._find_connection_by_username(auth_url, data)
+        if len(connection) == 0:
+            connection = self._find_connection_by_token(auth_url, data)
+        return connection
+
+    def _find_connection_by_username(self, auth_url: str, username: str):
         """
         Find a connection with username in parameter
         
         :param username: Username of a project 
         :return: None or a connection 
         """
-        for connection in self._connections:
-            if connection.authentication.username == username:
-                return connection
-        return None
+        list_connection = []
+        for connection in self._connections['password']:
+            if connection.authentication.username == username and connection.auth_url == auth_url:
+                list_connection.append(connection)
+        return list_connection
 
-    def _find_connection_by_token(self, token: str):
+    def _find_connection_by_token(self, auth_url: str, token: str):
         """
         Find a connection with token in parameter
 
         :param token: Token of a project 
         :return: None or a connection 
         """
-        for connection in self._connections:
-            if connection.authentication.token == token:
-                return connection
-        return None
+        list_connection = []
+        for connection in self._connections['token']:
+            if connection.authentication.token == token and connection.authentication.auth_url == auth_url:
+                list_connection.append(connection)
+        return list_connection
+
+    def _env_connection(self):
+        """
+        Make an environment connection
+        """
+        auth_url, token, username, password, user_domain_name, tenant_id = get_os_credentials()
+
+        if auth_url is None and (token is None and (username is None or password is None)):
+            return None
+
+        auth, method = self._try_to_make_an_authentication(auth_url, token, username, password, user_domain_name, tenant_id)
+        if auth is not None and method is not None:
+            self._add_connection(auth, method)
+            print("Connected with {}".format(auth))
+
+    def _add_connection(self, auth: Authentication, method: str):
+        if auth is not None and method is not None:
+            try:
+                self._current_connection = Connections(auth, self._connections_version)
+                self._connections[method].append(self._current_connection)
+            except Exception:
+                raise
+
+    @staticmethod
+    def _try_to_make_an_authentication(auth_url: str, token: str = None, username: str = None, password: str = None, user_domain_name: str = None, tenant_id: str = None, print_error: bool = False):
+        method, auth = None, None
+        try:
+            auth = AuthenticationV3(auth_url=auth_url, token=token)
+            method = "token"
+        except Exception as exception_message:
+            if print_error:
+                print("Authentication version 3 with token failed : {}".format(exception_message))
+            pass
+        if auth is None:
+            try:
+                auth = AuthenticationV3(auth_url=auth_url, username=username,
+                                        password=password, user_domain_name=user_domain_name)
+                method = "password"
+            except Exception as exception_message:
+                if print_error:
+                    print("Authentication version 3 with password failed : {}".format(exception_message))
+                pass
+
+        if auth is None:
+            try:
+                auth = AuthenticationV2(auth_url=auth_url, token=token, tenant_id=tenant_id)
+                method = "token"
+            except Exception as exception_message:
+                if print_error:
+                    print("Authentication version 2 with token failed : {}".format(exception_message))
+                pass
+        if auth is None:
+            try:
+                auth = AuthenticationV2(auth_url=auth_url, username=username, password=password, tenant_id=tenant_id)
+                method = "password"
+            except Exception as exception_message:
+                if print_error:
+                    print("Authentication version 2 with password failed : {}".format(exception_message))
+                pass
+        return auth, method
+
+    @staticmethod
+    def _cleaning_args(args):
+        return [arg.strip() for arg in args.split(' ') if arg != '']
+
+    @staticmethod
+    def _extract_auth_url_and_data(arg):
+        args_split = arg.split(':')
+        if len(args_split) != 2:
+            return None, None
+        return args_split[0], args_split[1]
 
     @staticmethod
     def _get_version(auth_url: str):
@@ -276,64 +419,35 @@ class Shell(cmd.Cmd):
                 return None
         return version
 
-    def _env_connection(self):
-        """
-        Make an environment connection
-        """
-        auth_url, token, username, password, user_domain_name, tenant_id = get_os_credentials()
-        auth = None
-
-        if auth_url is None and (token is None and (username is None or password is None)):
-            return None
-
-        try:
-            auth = AuthenticationV3(auth_url=auth_url, token=token)
-            self._add_connection(auth)
-            self._print_auth_token(auth)
-        except Exception as exception_message:
-            print(exception_message)
-            pass
-        if auth is None:
+    @staticmethod
+    def _ask_connection_method():
+        method = None
+        while method is None:
             try:
-                auth = AuthenticationV3(auth_url=auth_url, username=username,
-                                        password=password, user_domain_name=user_domain_name)
-                self._add_connection(auth)
-                self._print_auth_url(auth)
-            except Exception as exception_message:
-                print(exception_message)
-                pass
-
-        if auth is None:
-            try:
-                auth = AuthenticationV2(auth_url=auth_url, token=token, tenant_id=tenant_id)
-                self._add_connection(auth)
-                self._print_auth_token(auth)
-            except Exception as exception_message:
-                print(exception_message)
-                pass
-        if auth is None:
-            try:
-                auth = AuthenticationV2(auth_url=auth_url, username=username, password=password, tenant_id=tenant_id)
-                self._add_connection(auth)
-                self._print_auth_url(auth)
-            except Exception as exception_message:
-                print(exception_message)
-                pass
+                method = ask_credential([(False, "Which method between token and password [token by default]: ")])[0]
+                if method == "":
+                    method = "token"
+                else:
+                    if method != "token" and method != "password":
+                        method = None
+            except TypeError as type_error:
+                print(type_error)
+            except Exception as exception_error:
+                print(exception_error)
+        return method
 
     @staticmethod
-    def _print_auth_url(auth: Authentication):
-        if auth is not None:
-            print("You are connected to {} as {}\n".format(auth.auth_url, auth.username))
-
-    @staticmethod
-    def _print_auth_token(auth: Authentication):
-        if auth is not None:
-            print("You are connected to {} with a token\n".format(auth.auth_url))
-
-    def _add_connection(self, auth):
-        if auth is not None:
+    def _choose_connection_in_list(connection_list: list):
+        print("You have multiple connection")
+        index_connection = None
+        while index_connection is None:
+            print("Take one connection in this list: ")
+            print('\n'.join(
+                [str(index_connection + 1) + ': ' + str(connection_list[index_connection]) for index_connection in range(0, len(connection_list))]))
             try:
-                self._current_connection = Connections(auth, self._connections_version)
-                self._connections.append(self._current_connection)
-            except Exception:
-                raise
+                index_connection = int(ask_credential([(False, "Index: ")])[0])
+            except Exception as exception_message:
+                print(exception_message)
+            if index_connection not in range(0, len(connection_list)):
+                index_connection = None
+        return index_connection
