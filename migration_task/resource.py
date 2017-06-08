@@ -15,6 +15,8 @@ from enum import Enum
 from json import dumps
 from datetime import datetime
 import asyncio
+from novaclient import exceptions
+from time import sleep
 
 
 class ResourceType(Enum):
@@ -44,6 +46,9 @@ class Resource:
         self._snapshot_name = "" if snapshot_name is None else snapshot_name
         self._resource_created = {} if resource_created is None else resource_created
         self._resource_type = ResourceType.Undefined if resource_type is None else resource_type
+        # TODO make this more configurable
+        self._max_timeout = 5
+        self._sleep_timeout = 5
 
     @property
     def resource_information(self) -> dict:
@@ -162,6 +167,24 @@ class Resource:
         except:
             raise
 
+    def _try_to_make_snapshot(self, snapshot_function, *args):
+        timeout = 0
+        snapshot_created = False
+        while timeout < self._max_timeout and not snapshot_created:
+            try:
+                snapshot_function(*args)
+                snapshot_created = True
+            except exceptions.Conflict as conflit:
+                print("snapshot {} with id {} is in conflict: {}".format(self.resource_type, self.resource_information['id'], conflit))
+                timeout += 1
+                print("timeout {}/{} try again in {}".format(timeout, self._max_timeout, self._sleep_timeout))
+                sleep(self._sleep_timeout)
+                pass
+            except Exception:
+                print("[WARNING] Snapshot {} with id {} can't be created.".format(self.resource_type, self.resource_information['id']))
+                raise
+        return snapshot_created
+
     def _instance_migration(self, nova_connection_source: NovaConnection, glance_connection_source: GlanceConnection,
                             glance_connection_destination: GlanceConnection, nova_connection_destination: NovaConnection,
                             neutron_connection_destination: NeutronConnection):
@@ -183,25 +206,45 @@ class Resource:
             pass
         except:
             raise
-        print("begin snapshot {} with id {}".format(self.resource_type, self.resource_information['id']))
-        self.snapshot_name = self.resource_information['id'] + datetime.now().isoformat() + '_instance'
-        make_snapshot_from_uuid(nova_connection_source, self.resource_information['id'], self._snapshot_name)
-        print("end snapshot {} with id {}".format(self.resource_type, self.resource_information['id']))
 
+        print("begin snapshot {} with id {}".format(self.resource_type, self.resource_information['id']))
         try:
-            print("begin migration {} with id {}".format(self.resource_type, self.resource_information['id']))
+            self.snapshot_name = self.resource_information['id'] + datetime.now().isoformat() + '_instance'
+            snapshot_created = self._try_to_make_snapshot(make_snapshot_from_uuid, nova_connection_source, self.resource_information['id'], self._snapshot_name)
+        except:
+            print("[WARNING] Snapshot {} with id {} can't be created.".format(self.resource_type, self.resource_information['id']))
+            raise
+        if snapshot_created:
+            print("end snapshot {} with id {}".format(self.resource_type, self.resource_information['id']))
+        else:
+            print("snapshot {} with id {} not created".format(self.resource_type, self.resource_information['id']))
+            # TODO make exceptions class
+            raise RuntimeError("[WARNING] Snapshot {} with id {} can't be created.".format(self.resource_type, self.resource_information['id']))
+
+        print("begin migration {} with id {}".format(self.resource_type, self.resource_information['id']))
+        try:
             migration(glance_connection_source, glance_connection_destination, self.snapshot_name,
                       self.snapshot_name, disk_format, container_format)
-            print("end migration {} with id {}".format(self.resource_type, self.resource_information['id']))
         except:
+            print("[WARNING] Migration {} with id {} can't be perform.".format(self.resource_type, self.resource_information['id']))
             raise
+        print("end migration {} with id {}".format(self.resource_type, self.resource_information['id']))
 
         print("begin instance {} with id {}".format(self.resource_type, self.resource_information['id']))
-        tmp_resource = launch_instance(nova_connection_destination, self.resource_information['name'],
-                                       self.snapshot_name, flavor_name,
-                                       get_ovh_default_nics(neutron_connection_destination))
-        self.resource_created = tmp_resource.to_dict()
-        print("end instance {} with id {}".format(self.resource_type, self.resource_information['id']))
+        try:
+            tmp_resource = launch_instance(nova_connection_destination, self.resource_information['name'],
+                                           self.snapshot_name, flavor_name,
+                                           get_ovh_default_nics(neutron_connection_destination))
+            self.resource_created = tmp_resource.to_dict()
+        except:
+            print("[WARNING] Instance {} can't be launch with the snapshot {}".format(self.resource_type, self.snapshot_name))
+            raise
+        if self.resource_created == {}:
+            print("[WARNING] Instance {} can't be launch with the snapshot {}".format(self.resource_type, self.snapshot_name))
+            # TODO make exceptions class
+            raise RuntimeError("[WARNING] Instance {} can't be launch with the snapshot {}".format(self.resource_type, self.snapshot_name))
+        else:
+            print("end instance {} with id {}".format(self.resource_type, self.resource_information['id']))
 
     def _storage_migration(self, cinder_connection_source: CinderConnection, glance_connection_source: GlanceConnection,
                            nova_connection_source: NovaConnection, glance_connection_destination: GlanceConnection,
@@ -210,23 +253,42 @@ class Resource:
             size = self.resource_information['size']
         except:
             raise
-        print("begin snapshot {} with id {}".format(self.resource_type, self.resource_information['id']))
-        self.snapshot_name = self.resource_information['id'] + datetime.now().isoformat() + '_volume'
-        make_hard_disk_snapshot(cinder_connection_source, glance_connection_source, nova_connection_source,
-                                self.resource_information['id'], self.snapshot_name)
-        print("end snapshot {} with id {}".format(self.resource_type, self.resource_information['id']))
 
+        print("begin snapshot {} with id {}".format(self.resource_type, self.resource_information['id']))
         try:
-            print("begin migration {} with id {}".format(self.resource_type, self.resource_information['id']))
-            migration(glance_connection_source, glance_connection_destination, self.snapshot_name, self.snapshot_name)
-            print("end migration {} with id {}".format(self.resource_type, self.resource_information['id']))
+            self.snapshot_name = self.resource_information['id'] + datetime.now().isoformat() + '_volume'
+            snapshot_created = self._try_to_make_snapshot(make_hard_disk_snapshot, cinder_connection_source, glance_connection_source, nova_connection_source, self.resource_information['id'], self.snapshot_name)
         except:
+            print("[WARNING] Snapshot {} with id {} can't be created.".format(self.resource_type, self.resource_information['id']))
             raise
+        if snapshot_created:
+            print("end snapshot {} with id {}".format(self.resource_type, self.resource_information['id']))
+        else:
+            print("snapshot {} with id {} not created".format(self.resource_type, self.resource_information['id']))
+            # TODO make exceptions class
+            raise RuntimeError("[WARNING] Snapshot {} with id {} can't be created.".format(self.resource_type, self.resource_information['id']))
+
+        print("begin migration {} with id {}".format(self.resource_type, self.resource_information['id']))
+        try:
+            migration(glance_connection_source, glance_connection_destination, self.snapshot_name, self.snapshot_name)
+        except:
+            print("[WARNING] Migration {} with id {} can't be perform.".format(self.resource_type, self.resource_information['id']))
+            raise
+        print("end migration {} with id {}".format(self.resource_type, self.resource_information['id']))
 
         print("begin instance {} with id {}".format(self.resource_type, self.resource_information['id']))
-        tm_resource = cinder_connection_destination.connection.volumes.create(size, imageRef=self.snapshot_name)
-        self.resource_created = tm_resource.to_dict()
-        print("end instance {} with id {}".format(self.resource_type, self.resource_information['id']))
+        try:
+            tmp_resource = cinder_connection_destination.connection.volumes.create(size, imageRef=self.snapshot_name)
+            self.resource_created = tmp_resource.to_dict()
+        except:
+            print("[WARNING] Instance {} can't be launch with the snapshot {}".format(self.resource_type, self.snapshot_name))
+            raise
+        if self.resource_created == {}:
+            print("[WARNING] Instance {} can't be launch with the snapshot {}".format(self.resource_type, self.snapshot_name))
+            # TODO make exceptions class
+            raise RuntimeError("[WARNING] Instance {} can't be launch with the snapshot {}".format(self.resource_type, self.snapshot_name))
+        else:
+            print("end instance {} with id {}".format(self.resource_type, self.resource_information['id']))
 
     def __str__(self):
         return "resource_information: " + dumps(self.resource_information, indent=4) + '\n' + \

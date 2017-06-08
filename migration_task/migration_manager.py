@@ -3,6 +3,7 @@ from migration_task.resource_manager import ResourceManager
 from utils.attach_a_volume import attach_a_volume
 
 import asyncio
+import json
 
 
 class MigrationManager:
@@ -109,22 +110,46 @@ class MigrationManager:
         nova_connection_destination = self.destination_connection.get_nova_connection(self.destination_region_name)
         cinder_connection_destination = self.destination_connection.get_cinder_connection(self.destination_region_name)
         self._make_migration()
-        status = nova_connection_destination.connection.servers.get(self.resource_manager.instance_resource.resource_created['id']).to_dict()['status']
+        try:
+            status = nova_connection_destination.connection.servers.get(self.resource_manager.instance_resource.resource_created['id']).to_dict()['status']
+        except Exception:
+            print("Can't found the instance")
+            return
         # TODO make the status in the right way
         while status != 'ACTIVE':
-            status = nova_connection_destination.connection.servers.get(
-                self.resource_manager.instance_resource.resource_created['id']).to_dict()['status']
+            status = nova_connection_destination.connection.servers.get(self.resource_manager.instance_resource.resource_created['id']).to_dict()['status']
+            if status != 'ACTIVE' and status != 'BUILD':
+                print("Can't launch the instance")
+                raise ValueError("Status is not ACTIVE or BUILD: Status = [{}]".format(status))
+        print("Instance launch")
+
         disk_device_attached = False
         # TODO attach the disk in an other function
         while not disk_device_attached:
             disk_device_attached = True
             for storage_resource in self.resource_manager.storage_resource:
-                disk_information = cinder_connection_destination.connection.volumes.get(storage_resource.resource_created['id']).to_dict()
+                if storage_resource.resource_created == {}:
+                    print("Can't attach the resource {}".format(storage_resource))
+                    continue
+                try:
+                    disk_information = cinder_connection_destination.connection.volumes.get(storage_resource.resource_created['id']).to_dict()
+                except Exception as exception:
+                    print("Can't get the resource {}".format(storage_resource))
+                    continue
+                # TODO make an enum for disk_information
                 if disk_information['status'] == 'available':
                     attach_a_volume(nova_connection_destination, self.resource_manager.instance_resource.resource_created['id'], disk_information['id'])
+                    print("Disk {} attach to instance".format(disk_information['id']))
+                elif disk_information['status'] == 'error' or disk_information['status'] == 'error_deleting' or disk_information['status'] == 'error_backing-up' or disk_information['status'] == 'error_restoring' or disk_information['status'] == 'error_extending':
+                    print("Status error {} for the disk {}".format(status, disk_information['id']))
+                    print("Disk information {}".format(disk_information))
+                    continue
                 elif disk_information['status'] != 'in-use':
                     disk_device_attached = False
-        print(self.resource_manager.instance_resource)
+
+        information = nova_connection_destination.connection.servers.get(self.resource_manager.instance_resource.resource_created['id']).to_dict()
+        print("Addresses")
+        print(json.dumps(information['addresses'], indent=4))
 
     def detach_all_volumes(self):
         """
