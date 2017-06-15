@@ -36,33 +36,20 @@ command : `source openrc.sh`
 
 To migrate an instance between 2 projects you **must** have OpenStack credentials.
 
-This shell can detect OpenStack authentication from the environment. First
-of all, download the openrc.sh file corresponding to the region of the instance
-to migrate. Then source this openrc.sh file.
-
-After that you can launch the shell with the following command : `python3 main.py`
-
-If your credentials are correct you have something like that appear : `Connected with You are connected to URL as USER`
-with URL the authentication URL and USER the OpenStack user.
-
-If you don't have this line at the beginning of the shell, don't worried,
-you can make a connection with the command `connection`
-Then the shell ask you some information like if you want a OpenStack
-token authentication (beta) or a password authentication.
-
-For the password authentication, you **must** have :
-* The authentication url
-* OpenStack Username
-* User domain name (keep this by default by pressing enter)
-* OpenStack Password
-* Tenant id, if your authentication is in v2
-
-After that you can use the command `migration` to make the migration.
-To use the migration command do like this :
-`migration URL_SRC USER_SRC REGION_SRC URL_DEST USER_DEST REGION_DEST INSTANCE_NAME`
-with in order the authentication url source, the OpenStack user source,
-the region name source, the authentication url destination, the OpenStack
-user destination, the region name destination and the instance name to migrate
+* Source openrc file with the following command : `source openrc.sh`
+* Launch the shell with the following command : `python3 main.py`
+* You have already a connection if the credentials in openrc file are valid and
+see "You are connected to URL as USERNAME" in the first line
+* You can create a new connection with the following command : `connection`
+  * Enter password, because it's token is in alpha
+  * Enter your authentication url
+  * Enter your OpenStack username
+  * Enter your OpenStack password
+  * Enter your OpenStack tenant id
+* If the connection is successful you must see : "You are connected to URL as USERNAME"
+* Now, the connection are setup, you can launch the following command : `
+migration URL_SOURCE USER_SOURCE REGION_NAME_SOURCE URL_DESTINATION USER_DESTINATION
+REGION_NAME_DESTINATION INSTANCE_NAME`
 
 **Caution** :
 * If you have in the region name source multiple instance with the
