@@ -8,39 +8,46 @@ from os import wait
 from os import _exit as exit_child
 
 
-def migration(glance_source: GlanceConnection, glance_destination: GlanceConnection,
-              snapshot_name: str, server_name_dest: str,
-              disk_format: str = "qcow2", container_format: str = "bare"):
+def migration(glance_source: GlanceConnection, glance_destination: GlanceConnection, snapshot_name_source: str,
+              snapshot_name_destination: str, disk_format: str = "qcow2", container_format: str = "bare"):
     """
     Launch the migration of a snapshot_name between 2 GlanceConnection regions in "streaming" mode
-    If there are multiple 
+    If there are multiple the first one is taken
 
     :param glance_source: GlanceConnection object source
     :param glance_destination: GlanceConnection object destination
-    :param snapshot_name: str content the snapshot in region of glance_source and put in the glance_destination region
-    :param server_name_dest: str content the snapshot name in the glance_destionation region
+    :param snapshot_name_source: str content the snapshot name to transfer
+    :param snapshot_name_destination: str content the snapshot name in the glance_destination region
     :param disk_format: str content the disk_format of the snapshot
     :param container_format: str content the container_format of the snapshot
-    :raise: ValueError if snapshot_name is not found
+    :raise: ValueError if snapshot_name_source is not found
     """
-    snapshot_uuid = None
     try:
-        snapshot_uuid = get_snapshot_id_from_glance(glance_source, snapshot_name)[0]
-    except IndexError as index:
-        raise ValueError(snapshot_name + " snapshot not found")
+        snapshot_uuid = get_snapshot_id_from_glance(glance_source, snapshot_name_source)[0]
+    except IndexError:
+        raise ValueError(snapshot_name_source + " snapshot not found")
     try:
-        migration_from_uuid(glance_source, glance_destination, snapshot_uuid, server_name_dest,
-                            disk_format, container_format)
+        migration_from_uuid(glance_source, glance_destination, snapshot_uuid, snapshot_name_destination, disk_format,
+                            container_format)
     except:
         raise
 
 
-def migration_from_uuid(glance_source: GlanceConnection, glance_destination: GlanceConnection,
-                        snapshot_uuid, server_name_dest: str,
-                        disk_format: str = "qcow2", container_format: str = "bare"):
+def migration_from_uuid(glance_source: GlanceConnection, glance_destination: GlanceConnection, snapshot_uuid: str,
+                        snapshot_name_destination: str, disk_format: str = "qcow2", container_format: str = "bare"):
+    """
+    Launch the migration of a snapshot_uuid between 2 GlanceConnection regions in "streaming" mode
+
+    :param glance_source: GlanceConnection object source
+    :param glance_destination: GlanceConnection object destination
+    :param snapshot_uuid: str content the uuid of the snapshot to transfer
+    :param snapshot_name_destination: str content the 
+    :param disk_format: str content the disk_format of the snapshot
+    :param container_format: str content the container_format of the snapshot
+    """
     data = glance_source.connection.images.data(snapshot_uuid)
     pipe_filename = NamedTemporaryFile().name
-    image = glance_destination.connection.images.create(name=server_name_dest,
+    image = glance_destination.connection.images.create(name=snapshot_name_destination,
                                                         disk_format=disk_format,
                                                         container_format=container_format)
     image_uuid = str(image.get('id'))

@@ -16,13 +16,12 @@ def launch_instance(nova_connection: NovaConnection, instance_name: str,
     :param network: list content the nics representation of the network
     :raise: ValueError if snapshot_name or flavor not found
     """
-    image, flavor_uuid = None, None
     try:
         image = get_image_from_nova(nova_connection, snapshot_name)[0]
-    except IndexError as index:
+    except IndexError:
         raise ValueError(snapshot_name + " snapshot not found")
     try:
         flavor_uuid = find_flavors(nova_connection, flavor)[0]
-    except IndexError as index:
+    except IndexError:
         raise ValueError(flavor + " flavor not found")
-    nova_connection.connection.servers.create(instance_name, image, flavor_uuid, nics=network)
+    return nova_connection.connection.servers.create(instance_name, image, flavor_uuid, nics=network)

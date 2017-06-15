@@ -2,39 +2,65 @@ from keystoneauth1.identity import v3
 from keystoneauth1.identity import v2
 from keystoneauth1.identity.v2 import Auth
 from keystoneauth1.session import Session
-from os import environ
 
 
-class Authentication(object):
+class Authentication:
     """
-    Basic Authentication method to make basic session
+    Basic abstract Authentication class to make basic session
     """
-    def __init__(self, auth_url: str = None, username: str = None, password: str = None, user_domain_name: str = None, tenant_id: str = None):
+    def __init__(self, **kwargs):
         """
-        Authentication method. This check the environment but take priority from arguments
+        Authentication method.
 
         :param auth_url: str Authentication url 
         :param username: str Username
         :param password: str Password
         :param user_domain_name: str User domain name (Not exist in version 2 but important for version 3)
         :param tenant_id: str Tenant id (Important for version 2 but can be drop)
+        :param token: str Token
         """
         self._authentication = None
+        self._tenant_id = None
         self._session = None
         self._access = None
         self._catalog = None
 
         try:
-            auth_url = auth_url if auth_url is not None else environ['OS_AUTH_URL']
-            username = username if username is not None else environ['OS_USERNAME']
-            password = password if password is not None else environ['OS_PASSWORD']
-            user_domain_name = user_domain_name if user_domain_name is not None else environ['OS_USER_DOMAIN_NAME']
+            auth_url = kwargs['auth_url']
         except KeyError as key_error:
-            raise ValueError("{} not found or not initialize".format(key_error))
+            raise ValueError("{} not found".format(key_error))
 
-        self.connection(auth_url, username, password, user_domain_name, tenant_id)
+        try:
+            tenant_id = kwargs['tenant_id']
+        except KeyError:
+            tenant_id = None
 
-    def connection(self, auth_url: str = "", username: str = "", password: str = "", user_domain_name: str = "default", tenant_id: str = ""):
+        try:
+            token = kwargs['token']
+            self.connection_token(token=token, auth_url=auth_url, tenant_id=tenant_id)
+        except KeyError:
+            pass
+        except Exception:
+            raise
+
+        if self._authentication is None:
+            try:
+                username = kwargs['username']
+                password = kwargs['password']
+            except KeyError as key_error:
+                raise ValueError("{} not found".format(key_error))
+            try:
+                user_domain_name = kwargs['user_domain_name']
+            except KeyError:
+                user_domain_name = None
+
+            try:
+                self.connection(auth_url=auth_url, username=username, password=password,
+                                user_domain_name=user_domain_name, tenant_id=tenant_id)
+            except Exception:
+                raise
+
+    def connection(self, **kwargs):
         """
         Make a connection.
 
@@ -45,7 +71,18 @@ class Authentication(object):
         :param tenant_id: str Tenant id (Important for version 2 but can be drop)
         :raise: NotImplementedError 
         """
-        raise NotImplementedError("connection method must be implemented")
+        raise NotImplementedError("Connection by password method must be implemented")
+
+    def connection_token(self, **kwargs):
+        """
+        Make a connection with a token
+        
+        :param auth_url: str Authentication url
+        :param token: str Authentication token
+        :param tenant_id: str Tenant id
+        :raise: Not ImplementedError 
+        """
+        raise NotImplementedError("Connection by token method must be implemented")
 
     @property
     def authentication(self):
@@ -276,6 +313,15 @@ class Authentication(object):
         raise NotImplementedError("Must implement user domain id")
 
     @property
+    def tenant_id(self):
+        """
+        Tenant id property
+
+        :return: str content the tenant id 
+        """
+        return self._tenant_id
+
+    @property
     def global_region(self):
         """
         Region in common of all identity, compute, network, image, object_store and volume_v2 module
@@ -314,15 +360,23 @@ class Authentication(object):
         """
         raise NotImplementedError("Must implement _get_region function")
 
+    def _get_cache_id_elements(self, key: str):
+        cache_id_elements = self.authentication.get_cache_id_elements()
+        return cache_id_elements[key] if key in cache_id_elements else None
+
     def __str__(self):
-        return "Auth url: " + str(self.auth_url) + " | Username: " + str(self.username)
+        if self.username is not None and self.username != "":
+            return "You are connected to {} as {}".format(self.auth_url, self.username)
+        if self.token is not None and self.token != "":
+            return "You are connected to {} with the token {}".format(self.auth_url, self.token)
+        return ""
 
 
 class AuthenticationV3(Authentication):
     """
     Basic Authentication method to make a basic session V3
     """
-    def __init__(self, auth_url: str = None, username: str = None, password: str = None, user_domain_name: str = "default", tenant_id: str = None):
+    def __init__(self, **kwargs):
         """
         Authentication method. This check the environment but take priority from arguments
 
@@ -332,9 +386,9 @@ class AuthenticationV3(Authentication):
         :param user_domain_name: str User domain name (Not exist in version 2 but important for version 3)
         :param tenant_id: str Tenant id (Important for version 2 but can be drop)
         """
-        super().__init__(auth_url, username, password, user_domain_name, tenant_id)
+        super().__init__(**kwargs)
 
-    def connection(self, auth_url: str = "", username: str = "", password: str = "", user_domain_name: str = "default", tenant_id: str = ""):
+    def connection(self, **kwargs):
         """
         Make a connection.
 
@@ -344,23 +398,37 @@ class AuthenticationV3(Authentication):
         :param user_domain_name: str User domain name (Not exist in version 2 but important for version 3)
         :param tenant_id: str Tenant id (Important for version 2 but can be drop)
         """
-        self._authentication = v3.Password(auth_url=auth_url, username=username,
-                                           password=password, user_domain_name=user_domain_name)
+        self._authentication = v3.Password(auth_url=kwargs['auth_url'], username=kwargs['username'],
+                                           password=kwargs['password'], user_domain_name=kwargs['user_domain_name'])
+        self._init_session_access_catalog()
+
+    def connection_token(self, **kwargs):
+        """
+        Make a connection with a token
+        
+        :param auth_url: str Authentication url
+        :param token: str Authentication token
+        """
+        self._authentication = v3.Token(auth_url=kwargs['auth_url'], token=kwargs['token'])
+        self._init_session_access_catalog()
+
+    def _init_session_access_catalog(self):
         self._session = Session(auth=self.authentication)
         self._access = self.authentication.get_access(session=self.session)
-        self._catalog = None if not self.access.has_service_catalog() else self.access.__dict__['_data']['token']['catalog']
+        self._catalog = None if not self.access.has_service_catalog() else self.access.__dict__['_data']['token'][
+            'catalog']
 
     @property
     def username(self):
-        return self.authentication.get_cache_id_elements()['password_username']
+        return self._get_cache_id_elements('password_username')
 
     @property
     def password(self):
-        return self.authentication.get_cache_id_elements()['password_password']
+        return self._get_cache_id_elements('password_password')
 
     @property
     def user_domain_id(self):
-        return self.authentication.get_cache_id_elements()['password_user_domain_name']
+        return self._get_cache_id_elements('password_user_domain_name')
 
     @staticmethod
     def _get_region(elements: dict = None):
@@ -372,7 +440,7 @@ class AuthenticationV2(Authentication):
     """
     Basic Authentication method to make a basic session V2
     """
-    def __init__(self, auth_url: str = "", username: str = "", password: str = "", user_domain_name: str = "default", tenant_id: str = None):
+    def __init__(self, **kwargs):
         """
         Authentication method. This check the environment but take priority from arguments
 
@@ -382,9 +450,9 @@ class AuthenticationV2(Authentication):
         :param user_domain_name: str User domain name (Not exist in version 2 but important for version 3)
         :param tenant_id: str Tenant id (Important for version 2 but can be drop)
         """
-        super().__init__(auth_url, username, password, user_domain_name, tenant_id)
+        super().__init__(**kwargs)
 
-    def connection(self, auth_url: str = "", username: str = "", password: str = "", user_domain_name: str = "default0", tenant_id: str = ""):
+    def connection(self, **kwargs):
         """
         Make a connection.
 
@@ -395,27 +463,38 @@ class AuthenticationV2(Authentication):
         :param tenant_id: str Tenant id (Important for version 2 but can be drop)
         :raise: ValueError if OS_TENANT_ID is not defined
         """
-        try:
-            tenant_id = tenant_id if tenant_id is not None else environ['OS_TENANT_ID']
-        except KeyError as key_error:
-            raise ValueError("{} not found or not initialize".format(key_error))
+        self._authentication = v2.Password(auth_url=kwargs['auth_url'], username=kwargs['username'],
+                                           password=kwargs['password'], tenant_id=kwargs['tenant_id'])
+        self._init_session_access_catalog()
 
-        self._authentication = v2.Password(auth_url=auth_url, username=username, password=password, tenant_id=tenant_id)
+    def connection_token(self, **kwargs):
+        """
+        Make a connection with a token
+        
+        :param auth_url: str Authentication url
+        :param token: str Authentication token
+        :param tenant_id: str Tenant id
+        """
+        self._authentication = v2.Token(auth_url=kwargs['auth_url'], token=kwargs['token'],
+                                        tenant_id=kwargs['tenant_id'])
+        self._init_session_access_catalog()
+
+    def _init_session_access_catalog(self):
         self._session = Session(auth=self.authentication)
         self._access = self.authentication.get_access(session=self.session)
         self._catalog = None if not self.access.has_service_catalog() else self.access.__dict__['_data']['access']['serviceCatalog']
 
     @property
     def username(self):
-        return self.authentication.get_cache_id_elements()['username']
+        return self._get_cache_id_elements('username')
 
     @property
     def password(self):
-        return self.authentication.get_cache_id_elements()['password']
+        return self._get_cache_id_elements('password')
 
     @property
     def user_domain_id(self):
-        return self.authentication.get_cache_id_elements()['auth_url']
+        return self._get_cache_id_elements('auth_url')
 
     @staticmethod
     def _get_region(elements: dict = None):

@@ -2,7 +2,8 @@ import configparser
 from connections.glance_connection import GlanceConnection
 from connections.neutron_connection import NeutronConnection
 from connections.nova_connection import NovaConnection
-from authentication.authentication import AuthenticationV3
+from connections.cinder_connection import CinderConnection
+from authentication.authentication import Authentication
 
 
 class ConnectionsVersion:
@@ -17,6 +18,7 @@ class ConnectionsVersion:
         self._glance_version = config.get("Glance", "version") if config is not None and config.has_section("Glance") and config.has_option("Glance", "version") else "2"
         self._neutron_version = config.get("Neutron", "version") if config is not None and config.has_section("Neutron") and config.has_option("Nova", "version") else "2"
         self._nova_version = config.get("Nova", "version") if config is not None and config.has_section("Nova") and config.has_option("Nova", "version") else "2"
+        self._cinder_version = config.get("Cinder", "version") if config is not None and config.has_section("Cinder") and config.has_option("Cinder", "version") else "2"
 
     @property
     def nova_version(self):
@@ -45,6 +47,10 @@ class ConnectionsVersion:
         """
         return self._glance_version
 
+    @property
+    def cinder_version(self):
+        return self._cinder_version
+
     @staticmethod
     def _init_configuration(configure_file):
         config = configparser.ConfigParser()
@@ -64,9 +70,9 @@ class Connections:
     """
     Connections manager that manage all glance, neutron and nova connections in all regions
     """
-    def __init__(self, authentication: AuthenticationV3, connections_versions: ConnectionsVersion):
+    def __init__(self, authentication: Authentication, connections_versions: ConnectionsVersion):
         """
-        :param authentication: AuthenticationV3 object 
+        :param authentication: Authentication object 
         :param connections_versions: ConnectionsVersion object
         """
         self._authentication = authentication
@@ -74,18 +80,24 @@ class Connections:
         self._glance_connections = dict()
         self._neutron_connections = dict()
         self._nova_connections = dict()
+        self._cinder_connections = dict()
         self._init_connections()
 
     @property
     def catalog(self):
+        """
+        Catalog property
+
+        :return: dict content the Authentication catalog 
+        """
         return self.authentication.catalog
 
     @property
     def authentication(self):
         """
-        AuthenticationV3 property
+        Authentication property
 
-        :return: AuthenticationV3 object 
+        :return: Authentication object 
         """
         return self._authentication
 
@@ -116,6 +128,10 @@ class Connections:
         """
         return self._nova_connections
 
+    @property
+    def cinder(self):
+        return self._cinder_connections
+
     def get_glance_connection(self, region):
         """
         Get glance connection in function of region given
@@ -143,6 +159,9 @@ class Connections:
         """
         return self.neutron[region]
 
+    def get_cinder_connection(self, region):
+        return self.cinder[region]
+
     def _init_connection(self, regions, version, init_function, var_storage):
         """
         Initialise in var_storage with init_function in function of regions and version connection
@@ -152,10 +171,12 @@ class Connections:
         :param init_function: function that can initialize a connection
         :param var_storage: dict that can contain all connections
         """
+        if regions is None:
+            raise ValueError("Regions can't be None")
         for region in regions:
             credentials = {"region_name": str(region),
                            "version": str(version),
-                           "authentication_v3": self.authentication}
+                           "authentication": self.authentication}
             var_storage[str(region)] = init_function(**credentials)
 
     def _init_connections(self):
@@ -168,6 +189,8 @@ class Connections:
                               NeutronConnection, self._neutron_connections)
         self._init_connection(self.authentication.compute_region, self._connection_version.nova_version,
                               NovaConnection, self._nova_connections)
+        self._init_connection(self.authentication.volume_v2_region, self._connection_version.cinder_version,
+                              CinderConnection, self._cinder_connections)
 
     def __str__(self):
         return str(self._authentication)

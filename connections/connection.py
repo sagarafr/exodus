@@ -1,3 +1,5 @@
+from authentication.authentication import Authentication
+from authentication.authentication import AuthenticationV2
 from authentication.authentication import AuthenticationV3
 
 
@@ -9,15 +11,32 @@ class Connection(dict):
     def __init__(self, **kwargs):
         """
         Inheritance with dict
-        :param kwargs: * 'authentication_v3' content an AuthenticationV3 object
-        * 'auth_url' / 'username' / 'password' / 'user_domain_name' that make an AuthenticationV3 object 
+        :param kwargs: * 'authentication' content an Authentication object
+        * 'auth_url' / 'username' / 'password' / 'user_domain_name' that make an AuthenticationV3 object
+        * 'auth_url' / 'username' / 'password' / 'tenant_id' that make an AuthenticationV3 object
         """
         super().__init__(kwargs)
-        if 'authentication_v3' not in self:
-            self._authentication = AuthenticationV3(self.auth_url, self.username, self.password, self.user_domain_name)
-        else:
-            self._authentication = self['authentication_v3']
         self._connection = None
+
+        auth = False
+        try:
+            self._authentication = self['authentication']
+            auth = True
+        except KeyError:
+            pass
+        try:
+            self._authentication = AuthenticationV3(**self)
+            auth = True
+        except Exception:
+            pass
+        try:
+            self._authentication = AuthenticationV2(**self)
+            auth = True
+        except Exception:
+            pass
+
+        if not auth:
+            raise ValueError("Can not log in")
 
     @property
     def auth_url(self):
@@ -26,7 +45,7 @@ class Connection(dict):
 
         :return: str content the auth url property 
         """
-        return self['auth_url']
+        return self['auth_url'] if 'auth_url' in self else None
 
     @property
     def username(self):
@@ -35,7 +54,7 @@ class Connection(dict):
 
         :return: str content username property 
         """
-        return self['username']
+        return self['username'] if 'username' in self else None
 
     @property
     def password(self):
@@ -44,32 +63,41 @@ class Connection(dict):
 
         :return: str content password property 
         """
-        return self['password']
+        return self['password'] if 'password' in self else None
 
     @property
     def user_domain_name(self):
         """
         User domain name property content in the dict
 
-        :return: str content user_domain_name 
+        :return: str content user_domain_name property
         """
-        return self['user_domain_name']
+        return self['user_domain_name'] if 'user_domain_name' in self else None
 
     @property
-    def authentication_v3(self):
+    def tenant_id(self):
         """
-        AuthenticationV3 property content in the dict
+        Tenant id property int the dict
+
+        :return: str content tenant_id property
+        """
+        return self['tenant_id'] if 'tenant_id' in self else None
+
+    @property
+    def authentication_content(self):
+        """
+        Authentication property content in the dict
         
-        :return: AuthenticationV3 object
+        :return: Authentication object
         """
-        return self['authentication_v3']
+        return self['authentication']
 
     @property
     def authentication(self):
         """
         Authentication property content in the class
 
-        :return: AuthenticationV3 object 
+        :return: Authentication object
         """
         return self._authentication
 
@@ -82,19 +110,37 @@ class Connection(dict):
         """
         return self._connection
 
+    @property
+    def region_name(self):
+        """
+        Region name property
+
+        :return: str content the region name
+        """
+        return self['region_name'] if 'region_name' in self else None
+
+    @region_name.setter
+    def region_name(self, value):
+        """
+        Change only the property of region_name. DO NOT MAKE A RECONNECTION AFTER THIS
+
+        :param value: str content the region name in glance module
+        """
+        self['region_name'] = value
+
     @authentication.setter
-    def authentication(self, value):
+    def authentication(self, value: Authentication):
         """
         Authentication setter property
 
-        :param value: AuthenticationV3 object 
+        :param value: Authentication object
         """
         self._authentication = value
 
     @property
     def region(self):
         """
-        Global region property content in the AuthenticationV3 class
+        Global region property content in the Authentication class
 
         :return: set or None content all region in the module 
         """
@@ -112,7 +158,8 @@ class Connection(dict):
     @property
     def endpoints(self):
         """
-        Endpoints property
+        Endpoints property of Authentication
+
         :raise: NotImplemented because of its depend of connection module
         """
         raise NotImplemented("Endpoints is not implemented in Connection class")

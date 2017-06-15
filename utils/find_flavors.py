@@ -6,8 +6,8 @@ def find_flavors(nova_connection: NovaConnection, flavor_name: str):
     Find all flavor_name from nova_connection
 
     :param nova_connection: NovaConnection 
-    :param flavor_name: flavor to find
-    :return: list of flavors
+    :param flavor_name: str flavor to find
+    :return: list of flavors id
     """
     flavor_list = []
     for flavor in nova_connection.connection.flavors.list():
@@ -17,7 +17,30 @@ def find_flavors(nova_connection: NovaConnection, flavor_name: str):
     return flavor_list
 
 
+def find_flavor_name(nova_connection: NovaConnection, flavor_id: str):
+    """
+    Find all flavor name from nova_connection with the id flavor_id
+
+    :param nova_connection: NovaConnection
+    :param flavor_id: str flavor id to find
+    :return: list of flavors name 
+    """
+    flavor_list = []
+    for flavor in nova_connection.connection.flavors.list():
+        flavor_info = dict(flavor.to_dict())
+        if 'id' in flavor_info and 'name' in flavor_info and flavor_info['id'] == flavor_id:
+            flavor_list.append(flavor_info['name'])
+    return flavor_list
+
+
 def have_instance(nova_connection: NovaConnection, instance_name: str):
+    """
+    Check if the instance_name is in the same region that nova_connection
+
+    :param nova_connection: NovaConnection 
+    :param instance_name: str content the instance name
+    :return: bool
+    """
     for server in nova_connection.connection.servers.list():
         server_info = dict(server.to_dict())
         if 'name' in server_info and server_info['name'] == instance_name:
@@ -55,3 +78,21 @@ def is_good_flavor(nova_connection: NovaConnection, instance_src_name: str, flav
         if server_disk > base_disk:
             return False
     return True
+
+
+def find_flavor_name_from_id(nova_connection: NovaConnection, flavor_id: str):
+    """
+    Find the name of the flavor with the id flavor_id in the same region that nova_connection
+
+    :param nova_connection: NovaConnection 
+    :param flavor_id: str content the id of the flavor
+    :return: str content the name of the flavor or None 
+    """
+    try:
+        flavor_info = nova_connection.connection.flavors.get(flavor_id)
+    except Exception:
+        return None
+    flavor_info = dict(flavor_info.to_dict())
+    if 'name' in flavor_info:
+        return flavor_info['name']
+    return None

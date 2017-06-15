@@ -12,7 +12,7 @@ def main():
     auth = AuthenticationV3(**creds)
     nova_creds = {"region_name": "-1",
                   "version": "2",
-                  "authentication_v3": auth}
+                  "authentication": auth}
     regions = list(auth.compute_region)
     find = False
     while not find:

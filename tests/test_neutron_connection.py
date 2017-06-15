@@ -11,6 +11,7 @@ def main():
              "version": "2"}
     ovh_neutron_connection = NeutronConnection(**creds)
     print(ovh_neutron_connection.connection.list_networks())
+    print(ovh_neutron_connection.connection.list_network_ip_availabilities())
 
 
 if __name__ == '__main__':
