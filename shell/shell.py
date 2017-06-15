@@ -93,20 +93,11 @@ class Shell(cmd.Cmd):
         else:
             print("Bad command")
 
-    # TODO make real_migration (make the flavor, dest_instance_name and network optional)
-    # TODO delete the old one
-    # TODO check the network
-    def do_real_migration(self, args):
-        'Make a real migration between 2 projects. IN WORKING PROGRESS'
-        return
-
-    # TODO add the possibility to choose the network flavor or the id_instance or container_format or disk_format ?
     def do_migration(self, args):
-        'Make a migration between 2 project.\nUse: migration [auth_url src_user or auth_url src_token] src_region [auth_url dest_user or auth_url dest_token] dest_region src_instance_name'
+        'Make a migration between 2 project.\nUse: migration [auth_url src_user or auth_url src_token] src_region [auth_url dest_user or auth_url dest_token] dest_region instance_name or instance_id'
         args = self._cleaning_args(args)
         src_user_connection, dest_user_connection = None, None
         src_region, dest_region, src_instance_name = None, None, None
-
         if len(args) == 7:
             auth_url_src, src_user, src_region, auth_url_dest, dest_user, dest_region, src_instance_name = map(str, args)
             src_user_connection = self._find_connection(auth_url_src, src_user)
@@ -160,7 +151,10 @@ class Shell(cmd.Cmd):
                 else:
                     migration_manager = MigrationManager(source_connection=src_user_connection,
                                                          destination_connection=dest_user_connection)
-                    server_id = get_server_id_from_nova(src_user_connection.get_nova_connection(src_region), src_instance_name)[0]
+                    try:
+                        server_id = get_server_id_from_nova(src_user_connection.get_nova_connection(src_region), src_instance_name)[0]
+                    except:
+                        server_id = src_instance_name
                     migration_manager.prepare_migration(server_id, src_region, dest_region)
                     migration_manager.migration()
             except Exception as error:
@@ -312,7 +306,7 @@ class Shell(cmd.Cmd):
         """
         list_connection = []
         for connection in self._connections['password']:
-            if connection.authentication.username == username and connection.auth_url == auth_url:
+            if connection.authentication.username == username and connection.authentication.auth_url == auth_url:
                 list_connection.append(connection)
         return list_connection
 
@@ -391,7 +385,30 @@ class Shell(cmd.Cmd):
 
     @staticmethod
     def _cleaning_args(args):
-        return [arg.strip() for arg in args.split(' ') if arg != '']
+        r_args = []
+        is_escaping = False
+        arg = ""
+        for c in args:
+
+            if not is_escaping and c == '\\':
+                is_escaping = True
+                continue
+
+            if is_escaping:
+                arg += c
+                is_escaping = False
+                continue
+
+            if c == ' ':
+                if arg != "":
+                    r_args.append(arg)
+                    arg = ""
+                    continue
+            else:
+                arg += c
+        if arg != "":
+            r_args.append(arg)
+        return r_args
 
     @staticmethod
     def _extract_auth_url_and_data(arg):
