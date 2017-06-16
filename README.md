@@ -37,9 +37,10 @@ command : `source openrc.sh`
   * Enter your OpenStack password
   * Enter your OpenStack tenant id
 
-## Make an instance migration between 2 regions
+## Make an instance migration between 2 regions in the same project
 
 To migrate an instance between 2 regions you **must** have 1 OpenStack credentials.
+A credential is a the OpenStack username and password in your manager.
 
 * Source openrc file with the following command : `source openrc.sh`
 * Launch the shell with the following command : `python3 main.py`
@@ -47,9 +48,10 @@ To migrate an instance between 2 regions you **must** have 1 OpenStack credentia
 see "You are connected to URL as USERNAME" in the first line
 * If you don't have a connection you must create a connection with the `connection` command
 
-## Make an instance migration between 2 project
+## Make an instance migration between 2 projects
 
 To migrate an instance between 2 projects you **must** have 2 OpenStack credentials.
+A credential is a the OpenStack username and password in your manager.
 
 * Source openrc file with the following command : `source openrc.sh`
 * Launch the shell with the following command : `python3 main.py`
@@ -62,7 +64,9 @@ You can create a new connection with the following command : `connection`
 * If the connection is successful you must see : "You are connected to URL as USERNAME"
 * Now, all connections are setup, you can launch the following command : `
 migration URL_SOURCE USER_SOURCE REGION_NAME_SOURCE URL_DESTINATION USER_DESTINATION
-REGION_NAME_DESTINATION INSTANCE_NAME`
+REGION_NAME_DESTINATION INSTANCE_NAME` with :
+    * URL_SOURCE / URL_DESTINATION, the url authentication v2. Example :
+        https://auth.cloud.ovh.net/v2.0
 
 **Caution** :
 * If you have in the region name source multiple instance with the
