@@ -142,7 +142,7 @@ class Shell(cmd.Cmd):
                     print("{} is not in Nova region module".format(dest_region))
                 elif src_region not in src_user_connection.glance:
                     print("{} is not in Glance region module".format(src_region))
-                elif dest_region not in src_user_connection.glance:
+                elif dest_region not in dest_user_connection.glance:
                     print("{} is not in Glance region module".format(dest_region))
                 elif dest_region not in dest_user_connection.neutron:
                     print("{} is not in Neutron region module".format(dest_region))

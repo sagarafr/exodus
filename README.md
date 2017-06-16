@@ -30,39 +30,43 @@ A basic exodus shell client. The commands available are :
 To make a connection you have 2 basic way :
 * You can source an file content all OpenStack credentials with the following
 command : `source openrc.sh`
-* You can be drive by the command `connection`
+* You can be drive by the command `connection` with this following step :
+  * Enter password, because it's token is in alpha
+  * Enter your authentication url
+  * Enter your OpenStack username
+  * Enter your OpenStack password
+  * Enter your OpenStack tenant id
 
-## Make an instance migration between 2 project
+## Make an instance migration between 2 regions in the same project
 
-To migrate an instance between 2 projects you **must** have OpenStack credentials.
+To migrate an instance between 2 regions you **must** have 1 OpenStack credentials.
+A credential is a the OpenStack username and password in your manager.
 
-This shell can detect OpenStack authentication from the environment. First
-of all, download the openrc.sh file corresponding to the region of the instance
-to migrate. Then source this openrc.sh file.
+* Source openrc file with the following command : `source openrc.sh`
+* Launch the shell with the following command : `python3 main.py`
+* You have already a connection if the credentials in openrc file are valid and
+see "You are connected to URL as USERNAME" in the first line
+* If you don't have a connection you must create a connection with the `connection` command
 
-After that you can launch the shell with the following command : `python3 main.py`
+## Make an instance migration between 2 projects
 
-If your credentials are correct you have something like that appear : `Connected with You are connected to URL as USER`
-with URL the authentication URL and USER the OpenStack user.
+To migrate an instance between 2 projects you **must** have 2 OpenStack credentials.
+A credential is a the OpenStack username and password in your manager.
 
-If you don't have this line at the beginning of the shell, don't worried,
-you can make a connection with the command `connection`
-Then the shell ask you some information like if you want a OpenStack
-token authentication (beta) or a password authentication.
-
-For the password authentication, you **must** have :
-* The authentication url
-* OpenStack Username
-* User domain name (keep this by default by pressing enter)
-* OpenStack Password
-* Tenant id, if your authentication is in v2
-
-After that you can use the command `migration` to make the migration.
-To use the migration command do like this :
-`migration URL_SRC USER_SRC REGION_SRC URL_DEST USER_DEST REGION_DEST INSTANCE_NAME`
-with in order the authentication url source, the OpenStack user source,
-the region name source, the authentication url destination, the OpenStack
-user destination, the region name destination and the instance name to migrate
+* Source openrc file with the following command : `source openrc.sh`
+* Launch the shell with the following command : `python3 main.py`
+* You have already a connection if the credentials in openrc file are valid and
+see "You are connected to URL as USERNAME" in the first line
+*  Basically, to make a migration between 2 projects you have 2 connection.
+The first one is the source connection, where is your instance. The second
+one is the destination connection, where you want to migrate your instance.
+You can create a new connection with the following command : `connection`
+* If the connection is successful you must see : "You are connected to URL as USERNAME"
+* Now, all connections are setup, you can launch the following command : `
+migration URL_SOURCE USER_SOURCE REGION_NAME_SOURCE URL_DESTINATION USER_DESTINATION
+REGION_NAME_DESTINATION INSTANCE_NAME` with :
+    * URL_SOURCE / URL_DESTINATION, the url authentication v2. Example :
+        https://auth.cloud.ovh.net/v2.0
 
 **Caution** :
 * If you have in the region name source multiple instance with the
@@ -70,4 +74,6 @@ same name, the migration will take the first instance.
 * You can use the instance ID but it's in beta mode
 
 *Information* :
-If you have some space in the instance name you can escape it with '\\' symbol before the space
+* If you have some space in the instance name you can escape it with '\\' symbol before the space
+* If you don't have enough places in your project, the `migration` command
+will make his best and tell you what it have do.
